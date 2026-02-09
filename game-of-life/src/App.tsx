@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGameOfLife } from './hooks/useGameOfLife';
-import { Grid } from './components/Grid';
+import { CanvasGrid } from './components/CanvasGrid';
 import { Controls } from './components/Controls';
 import { Stats } from './components/Stats';
 import { IntroScreen } from './components/IntroScreen';
@@ -55,8 +55,8 @@ function App() {
           <Stats generation={generation} aliveCount={aliveCount} />
         </div>
 
-        <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
-          <Grid grid={grid} setCell={setCell} />
+        <div className="flex-1 w-full h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden border border-gray-800 rounded-xl bg-gray-950 shadow-2xl">
+          <CanvasGrid grid={grid} setCell={setCell} running={isRunning} />
         </div>
 
         {/* Spacer for mobile controls */}
