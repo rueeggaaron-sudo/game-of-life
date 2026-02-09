@@ -189,6 +189,11 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
     isDrawingRef.current = false;
   };
 
+  const handleDoubleClick = () => {
+    setZoom(20);
+    setOffset({ x: 20, y: 20 });
+  };
+
   const handleWheel = (e: React.WheelEvent) => {
     if (!containerRef.current) return;
     const zoomSensitivity = 0.001;
@@ -222,16 +227,18 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
         className="block touch-none"
       />
 
       {/* HUD */}
-      <div className="absolute top-4 right-4 pointer-events-none bg-black/50 backdrop-blur text-xs text-gray-400 p-2 rounded border border-gray-800 z-10">
+      <div className="absolute top-20 right-4 pointer-events-none bg-black/50 backdrop-blur text-xs text-gray-400 p-2 rounded border border-gray-800 z-10">
         <div>Rechtsklick + Ziehen: Verschieben</div>
         <div>Mausrad: Zoomen</div>
         <div>Linksklick: Zeichnen</div>
+        <div>Doppelklick: Reset Ansicht</div>
         <div className="mt-1 pt-1 border-t border-gray-700 font-mono">
           Zoom: {zoom.toFixed(1)}px | Pos: {Math.round(-offset.x/zoom)},{Math.round(-offset.y/zoom)}
         </div>
