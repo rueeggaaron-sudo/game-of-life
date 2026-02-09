@@ -56,7 +56,7 @@ function App() {
         </div>
 
         <div className="flex-1 w-full h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden border border-gray-800 rounded-xl bg-gray-950 shadow-2xl">
-          <CanvasGrid grid={grid} setCell={setCell} running={isRunning} />
+          <CanvasGrid grid={grid} setCell={setCell} />
         </div>
 
         {/* Spacer for mobile controls */}
