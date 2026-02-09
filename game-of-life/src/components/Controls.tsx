@@ -28,10 +28,10 @@ export const Controls = ({
   setGridSize,
 }: ControlsProps) => {
   return (
-    <div className="flex flex-wrap gap-4 p-3 md:p-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 items-center justify-center shadow-2xl rounded-t-2xl md:rounded-2xl md:mb-8 mx-auto max-w-fit">
+    <div className="flex flex-wrap gap-2 md:gap-4 p-2 md:p-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 items-center justify-center shadow-2xl rounded-2xl mx-auto max-w-fit">
 
       {/* Group 1: Playback */}
-      <div className="flex gap-2">
+      <div className="flex gap-1 md:gap-2">
         <button
           onClick={toggleRunning}
           className={`px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold transition-all transform active:scale-95 flex items-center gap-2 ${

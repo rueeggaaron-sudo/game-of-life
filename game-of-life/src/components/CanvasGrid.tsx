@@ -234,7 +234,7 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
       />
 
       {/* HUD */}
-      <div className="absolute top-20 right-4 pointer-events-none bg-black/50 backdrop-blur text-xs text-gray-400 p-2 rounded border border-gray-800 z-10">
+      <div className="absolute bottom-4 right-4 pointer-events-none bg-black/50 backdrop-blur text-[10px] md:text-xs text-gray-400 p-2 rounded border border-gray-800 z-10 hidden md:block">
         <div>Rechtsklick + Ziehen: Verschieben</div>
         <div>Mausrad: Zoomen</div>
         <div>Linksklick: Zeichnen</div>
