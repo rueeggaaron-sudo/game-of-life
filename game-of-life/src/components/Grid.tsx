@@ -61,6 +61,7 @@ export const Grid = ({ grid, setCell }: GridProps) => {
         className="grid gap-[1px] bg-gray-800/50 border border-gray-700 shadow-2xl touch-none"
         style={{
           gridTemplateColumns: `repeat(${cols}, 20px)`,
+          gridTemplateRows: `repeat(${rows}, 20px)`,
           width: 'fit-content',
         }}
       >
