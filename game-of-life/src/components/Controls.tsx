@@ -107,8 +107,10 @@ export const Controls = ({
           className="bg-gray-800 text-gray-200 border border-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 min-w-[120px] cursor-pointer hover:border-gray-600 transition-colors"
         >
           <option value="20x20">Klein (20x20)</option>
-          <option value="30x50">Mittel (30x50)</option>
-          <option value="40x70">Groß (40x70)</option>
+          <option value="50x50">Mittel (50x50)</option>
+          <option value="100x100">Groß (100x100)</option>
+          <option value="200x200">Riesig (200x200)</option>
+          <option value="500x500">Gigantisch (500x500)</option>
         </select>
       </div>
 
