@@ -1,9 +1,12 @@
+import { patterns, type Pattern } from '../game/patterns';
+
 interface ControlsProps {
   isRunning: boolean;
   toggleRunning: () => void;
   step: () => void;
   reset: () => void;
   randomize: () => void;
+  loadPattern: (pattern: Pattern) => void;
   speed: number;
   setSpeed: (speed: number) => void;
   rows: number;
@@ -17,6 +20,7 @@ export const Controls = ({
   step,
   reset,
   randomize,
+  loadPattern,
   speed,
   setSpeed,
   rows,
@@ -40,7 +44,7 @@ export const Controls = ({
             </>
           ) : (
             <>
-              <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-green-400 border-b-[5px] border-b-transparent ml-1" /> Play
+              <span className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-green-400 border-b-[5px] border-b-transparent ml-1" /> Start
             </>
           )}
         </button>
@@ -49,7 +53,7 @@ export const Controls = ({
           disabled={isRunning}
           className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
-          Step
+          Schritt
         </button>
       </div>
 
@@ -60,21 +64,22 @@ export const Controls = ({
           onClick={randomize}
           className="px-4 py-2.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 rounded-lg transition-colors font-medium"
         >
-          Random
+          Zufall
         </button>
         <button
           onClick={reset}
           className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors border border-gray-700 font-medium"
         >
-          Clear
+          Leeren
         </button>
       </div>
 
       <div className="h-8 w-[1px] bg-gray-800 hidden md:block mx-2"></div>
 
+      {/* Speed Control */}
       <div className="flex flex-col items-center min-w-[140px]">
         <div className="flex justify-between w-full text-xs text-gray-400 mb-1.5 px-1">
-          <span>Speed</span>
+          <span>Geschw.</span>
           <span className="font-mono text-gray-300">{speed}ms</span>
         </div>
         <input
@@ -90,8 +95,9 @@ export const Controls = ({
 
       <div className="h-8 w-[1px] bg-gray-800 hidden md:block mx-2"></div>
 
+      {/* Grid Size Control */}
       <div className="flex flex-col items-start">
-        <label className="text-xs text-gray-400 mb-1 ml-1">Grid Size</label>
+        <label className="text-xs text-gray-400 mb-1 ml-1">Rastergröße</label>
         <select
           value={`${rows}x${cols}`}
           onChange={(e) => {
@@ -100,9 +106,35 @@ export const Controls = ({
           }}
           className="bg-gray-800 text-gray-200 border border-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 min-w-[120px] cursor-pointer hover:border-gray-600 transition-colors"
         >
-          <option value="20x20">Small (20x20)</option>
-          <option value="30x50">Medium (30x50)</option>
-          <option value="40x70">Large (40x70)</option>
+          <option value="20x20">Klein (20x20)</option>
+          <option value="30x50">Mittel (30x50)</option>
+          <option value="40x70">Groß (40x70)</option>
+        </select>
+      </div>
+
+      <div className="h-8 w-[1px] bg-gray-800 hidden md:block mx-2"></div>
+
+      {/* Presets Dropdown */}
+      <div className="flex flex-col items-start">
+        <label className="text-xs text-gray-400 mb-1 ml-1">Muster</label>
+        <select
+          onChange={(e) => {
+            const patternName = e.target.value;
+            const pattern = patterns.find(p => p.name === patternName);
+            if (pattern) {
+              loadPattern(pattern);
+            }
+            // Reset select to default option
+            e.target.value = "";
+          }}
+          className="bg-gray-800 text-gray-200 border border-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 min-w-[120px] cursor-pointer hover:border-gray-600 transition-colors"
+        >
+          <option value="" disabled selected>Wählen...</option>
+          {patterns.map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name}
+            </option>
+          ))}
         </select>
       </div>
     </div>

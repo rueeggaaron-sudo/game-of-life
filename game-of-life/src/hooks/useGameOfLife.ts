@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Grid } from '../game/types';
-import { createEmptyGrid, createRandomGrid, toggleCell as toggleGridCell } from '../game/grid';
+import { createEmptyGrid, createRandomGrid, placePattern } from '../game/grid';
 import { computeNextGeneration } from '../game/rules';
+import type { Pattern } from '../game/patterns';
 
 export const useGameOfLife = () => {
   const [rows, setRows] = useState(30);
@@ -31,8 +32,36 @@ export const useGameOfLife = () => {
     setGeneration(0);
   }, [rows, cols]);
 
+  const loadPattern = useCallback((pattern: Pattern) => {
+    const emptyGrid = createEmptyGrid(rows, cols);
+    const patternHeight = pattern.grid.length;
+    const patternWidth = pattern.grid[0].length;
+
+    // Center the pattern
+    const offsetY = Math.floor((rows - patternHeight) / 2);
+    const offsetX = Math.floor((cols - patternWidth) / 2);
+
+    const newGrid = placePattern(emptyGrid, pattern.grid, offsetX, offsetY);
+    setGrid(newGrid);
+    setGeneration(0);
+    setIsRunning(false);
+  }, [rows, cols]);
+
   const toggleCell = useCallback((x: number, y: number) => {
-    setGrid((prevGrid) => toggleGridCell(prevGrid, x, y));
+    setGrid((prevGrid) => {
+      const newGrid = prevGrid.map((row) => [...row]);
+      newGrid[y][x] = !newGrid[y][x];
+      return newGrid;
+    });
+  }, []);
+
+  const setCell = useCallback((x: number, y: number, value: boolean) => {
+    setGrid((prevGrid) => {
+      if (prevGrid[y][x] === value) return prevGrid;
+      const newGrid = prevGrid.map((row) => [...row]);
+      newGrid[y][x] = value;
+      return newGrid;
+    });
   }, []);
 
   const step = useCallback(() => {
@@ -57,9 +86,11 @@ export const useGameOfLife = () => {
     isRunning,
     setIsRunning,
     toggleCell,
+    setCell,
     step,
     reset,
     randomize,
+    loadPattern,
     speed,
     setSpeed,
     rows,
