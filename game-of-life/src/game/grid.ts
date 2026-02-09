@@ -14,13 +14,39 @@ export function createEmptyGrid(rows: number, cols: number): Grid {
  * Creates a randomized grid where each cell has a chance to be alive.
  * @param rows Number of rows
  * @param cols Number of columns
- * @param density Probability of a cell being alive (0.0 to 1.0). Default 0.2.
+ * @param density Probability of a cell being alive (0.0 to 1.0). Default 0.3.
  * @returns A Grid with random alive/dead cells
  */
-export function createRandomGrid(rows: number, cols: number, density: number = 0.2): Grid {
+export function createRandomGrid(rows: number, cols: number, density: number = 0.3): Grid {
   return Array(rows).fill(null).map(() =>
     Array(cols).fill(null).map(() => Math.random() < density)
   );
+}
+
+/**
+ * Places a pattern on the grid at a specific position.
+ * @param grid Current grid
+ * @param pattern 2D boolean array representing the pattern
+ * @param offsetX Top-left X coordinate
+ * @param offsetY Top-left Y coordinate
+ * @returns New grid with pattern applied
+ */
+export function placePattern(grid: Grid, pattern: boolean[][], offsetX: number, offsetY: number): Grid {
+  const newGrid = grid.map(row => [...row]);
+  const rows = newGrid.length;
+  const cols = newGrid[0].length;
+
+  for (let y = 0; y < pattern.length; y++) {
+    for (let x = 0; x < pattern[y].length; x++) {
+      const targetY = offsetY + y;
+      const targetX = offsetX + x;
+
+      if (targetY >= 0 && targetY < rows && targetX >= 0 && targetX < cols) {
+        newGrid[targetY][targetX] = pattern[y][x];
+      }
+    }
+  }
+  return newGrid;
 }
 
 /**

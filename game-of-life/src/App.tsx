@@ -12,10 +12,11 @@ function App() {
     generation,
     isRunning,
     setIsRunning,
-    toggleCell,
+    setCell,
     step,
     reset,
     randomize,
+    loadPattern,
     speed,
     setSpeed,
     rows,
@@ -45,7 +46,7 @@ function App() {
           onClick={() => setShowIntro(true)}
           className="text-xs md:text-sm text-gray-400 hover:text-white transition-colors border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 bg-gray-800/50"
         >
-          About / Rules
+          Über / Regeln
         </button>
       </header>
 
@@ -55,7 +56,7 @@ function App() {
         </div>
 
         <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
-          <Grid grid={grid} onToggle={toggleCell} />
+          <Grid grid={grid} setCell={setCell} />
         </div>
 
         {/* Spacer for mobile controls */}
@@ -68,6 +69,7 @@ function App() {
         step={step}
         reset={reset}
         randomize={randomize}
+        loadPattern={loadPattern}
         speed={speed}
         setSpeed={setSpeed}
         rows={rows}

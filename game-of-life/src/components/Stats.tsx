@@ -12,7 +12,7 @@ export const Stats = ({ generation, aliveCount }: StatsProps) => {
       </div>
       <div className="w-[1px] h-8 bg-gray-800"></div>
       <div className="flex flex-col items-center">
-        <span className="text-xs uppercase tracking-wider text-gray-500">Population</span>
+        <span className="text-xs uppercase tracking-wider text-gray-500">Lebende Zellen</span>
         <span className="text-xl font-bold text-green-400">{aliveCount}</span>
       </div>
     </div>
