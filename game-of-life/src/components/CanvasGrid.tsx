@@ -8,18 +8,6 @@ interface CanvasGridProps {
   shift: (dx: number, dy: number) => void;
 }
 
-const getColorFromClass = (className?: string) => {
-  if (!className) return '#22c55e'; // Default Green-500
-  if (className.includes('bg-red-500')) return '#ef4444';
-  if (className.includes('bg-amber-400')) return '#fbbf24';
-  if (className.includes('bg-yellow-600')) return '#ca8a04';
-  if (className.includes('bg-blue-500')) return '#3b82f6';
-  if (className.includes('bg-purple-500')) return '#a855f7';
-  if (className.includes('bg-green-600')) return '#16a34a';
-  if (className.includes('bg-gray-400')) return '#9ca3af';
-  return '#22c55e';
-};
-
 export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,8 +41,8 @@ export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
 
   // Pattern detection
   // Optimization: Disable pattern detection for large grids to maintain performance
-  const patternMap = useMemo(() => {
-    if (rows * cols > 50000) return new Map();
+  const patternGrid = useMemo(() => {
+    if (rows * cols > 50000) return [];
     return detectPatterns(grid);
   }, [grid, rows, cols]);
 
@@ -133,8 +121,8 @@ export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
     for (let y = visStartRow; y < visEndRow; y++) {
       for (let x = visStartCol; x < visEndCol; x++) {
         if (grid[y][x]) {
-          const pattern = patternMap.get(`${x},${y}`);
-          ctx.fillStyle = getColorFromClass(pattern?.color);
+          const pattern = patternGrid[y * cols + x];
+          ctx.fillStyle = pattern?.hex || '#22c55e';
           ctx.fillRect(x, y, 1, 1);
         }
       }
@@ -147,7 +135,7 @@ export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
 
     ctx.restore();
 
-  }, [grid, offset, size, rows, cols, patternMap]);
+  }, [grid, offset, size, rows, cols, patternGrid]);
 
   // Interaction Handlers
   const screenToWorld = useCallback((sx: number, sy: number) => {
