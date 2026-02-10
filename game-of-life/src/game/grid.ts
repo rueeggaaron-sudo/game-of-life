@@ -82,7 +82,7 @@ export function clearGrid(grid: Grid): Grid {
  * @param dy Vertical shift amount (positive = down)
  * @returns New shifted grid
  */
-export function shiftGrid(grid: Grid, dx: number, dy: number): Grid {
+export function shiftGrid(grid: Grid, dx: number, dy: number, density: number = 0.2): Grid {
   const rows = grid.length;
   if (rows === 0) return grid;
   const cols = grid[0].length;
@@ -95,6 +95,9 @@ export function shiftGrid(grid: Grid, dx: number, dy: number): Grid {
 
       if (srcY >= 0 && srcY < rows && srcX >= 0 && srcX < cols) {
         newGrid[y][x] = grid[srcY][srcX];
+      } else {
+        // Generative fill for new cells
+        newGrid[y][x] = Math.random() < density;
       }
     }
   }
