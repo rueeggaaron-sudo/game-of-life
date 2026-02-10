@@ -31,8 +31,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
 
 
   // Interaction State
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const lastMousePos = useRef({ x: 0, y: 0 });
   const dragAcc = useRef({ x: 0, y: 0 });
   const isDrawingRef = useRef(false);
   const drawModeRef = useRef(true);
@@ -150,13 +149,42 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   }, [offset]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Right Click: Drag
     if (e.button === 2 || e.buttons === 2) {
-      setIsDragging(true);
-      setLastMousePos({ x: e.clientX, y: e.clientY });
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
       // Reset accumulator on new drag
       dragAcc.current = { x: 0, y: 0 };
+
+      const onDragMove = (ev: MouseEvent) => {
+        const dx = ev.clientX - lastMousePos.current.x;
+        const dy = ev.clientY - lastMousePos.current.y;
+
+        dragAcc.current.x += dx;
+        dragAcc.current.y += dy;
+
+        const cellsX = Math.floor(dragAcc.current.x / ZOOM);
+        const cellsY = Math.floor(dragAcc.current.y / ZOOM);
+
+        if (cellsX !== 0 || cellsY !== 0) {
+          shift(cellsX, cellsY);
+          dragAcc.current.x -= cellsX * ZOOM;
+          dragAcc.current.y -= cellsY * ZOOM;
+        }
+
+        lastMousePos.current = { x: ev.clientX, y: ev.clientY };
+      };
+
+      const onDragUp = () => {
+        window.removeEventListener('mousemove', onDragMove);
+        window.removeEventListener('mouseup', onDragUp);
+      };
+
+      window.addEventListener('mousemove', onDragMove);
+      window.addEventListener('mouseup', onDragUp);
       return;
     }
+
+    // Left Click: Draw
     if (e.button === 0) {
       isDrawingRef.current = true;
       const { x, y } = screenToWorld(e.clientX, e.clientY);
@@ -165,44 +193,25 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
         drawModeRef.current = !currentVal;
         setCell(x, y, !currentVal);
       }
-    }
-  };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      const dx = e.clientX - lastMousePos.x;
-      const dy = e.clientY - lastMousePos.y;
-
-      dragAcc.current.x += dx;
-      dragAcc.current.y += dy;
-
-      const cellsX = Math.floor(dragAcc.current.x / ZOOM);
-      const cellsY = Math.floor(dragAcc.current.y / ZOOM);
-
-      if (cellsX !== 0 || cellsY !== 0) {
-        // Invert cellsX/Y because moving mouse RIGHT means "pulling" the grid, so content moves RIGHT.
-        // shift(1, 0) moves content right.
-        shift(cellsX, cellsY);
-        dragAcc.current.x -= cellsX * ZOOM;
-        dragAcc.current.y -= cellsY * ZOOM;
-      }
-
-      setLastMousePos({ x: e.clientX, y: e.clientY });
-      return;
-    }
-    if (isDrawingRef.current) {
-      const { x, y } = screenToWorld(e.clientX, e.clientY);
-      if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        if (grid[y][x] !== drawModeRef.current) {
-           setCell(x, y, drawModeRef.current);
+      const onDrawMove = (ev: MouseEvent) => {
+        const { x, y } = screenToWorld(ev.clientX, ev.clientY);
+        if (x >= 0 && x < cols && y >= 0 && y < rows) {
+          if (grid[y][x] !== drawModeRef.current) {
+            setCell(x, y, drawModeRef.current);
+          }
         }
-      }
-    }
-  };
+      };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    isDrawingRef.current = false;
+      const onDrawUp = () => {
+        isDrawingRef.current = false;
+        window.removeEventListener('mousemove', onDrawMove);
+        window.removeEventListener('mouseup', onDrawUp);
+      };
+
+      window.addEventListener('mousemove', onDrawMove);
+      window.addEventListener('mouseup', onDrawUp);
+    }
   };
 
   const handleDoubleClick = () => {
@@ -232,9 +241,6 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
       <canvas
         ref={canvasRef}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
