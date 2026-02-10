@@ -1,91 +1,89 @@
 # Conway's Game of Life
 
-A clean, responsive, and interactive implementation of Conway's Game of Life built with React, TypeScript, and Tailwind CSS.
+Eine moderne, responsive und interaktive Implementierung von Conway's Game of Life, entwickelt mit React, TypeScript und Tailwind CSS v4.
 
-This project demonstrates cellular automata where complex patterns emerge from simple rules.
+Dieses Projekt demonstriert zelluläre Automaten, bei denen komplexe Muster aus einfachen Regeln entstehen. Besonderer Fokus liegt auf einer **unendlichen Raster-Simulation** und **Echtzeit-Mustererkennung**.
 
-## Features
+## Funktionen
 
-- **Interactive Grid:** Click cells to toggle them alive or dead.
-- **Responsive Layout:** Works on desktop and mobile devices.
-- **Controls:**
-  - Play / Pause simulation.
-  - Single Step mode.
-  - Reset / Clear grid.
-  - Randomize grid.
-  - Adjustable Speed (50ms - 1000ms).
-  - Grid Size Presets (Small, Medium, Large).
-- **Statistics:** Generation counter and Alive cell population.
-- **Intro Screen:** Explanation of rules and "Emergence".
+- **Unendliches Raster (Illusion):** Das Spielfeld ist nicht begrenzt. Durch Verschieben des sichtbaren Bereichs (Panning) entsteht der Eindruck einer unendlichen Welt. Zellen, die den sichtbaren Bereich verlassen, werden simuliert, solange sie aktiv sind (in der Logik des fixen Rasters, der verschoben wird).
+- **Echtzeit-Mustererkennung:** Das System erkennt automatisch bekannte Strukturen (Still Lifes, Oscillators, Spaceships) und färbt sie entsprechend ein:
+  - **Rot:** Block (Still Life)
+  - **Gelb/Amber:** Beehive, Loaf (Still Life)
+  - **Blau:** Pond (Still Life)
+  - **Lila:** Blinker, Toad, Beacon (Oscillator)
+  - **Grün:** Glider, LWSS (Spaceship)
+- **Responsive Design:** Optimiert für Desktop und Mobile Geräte.
+- **Steuerung:**
+  - Start / Stop / Einzelschritt-Modus.
+  - Geschwindigkeit anpassbar (50ms - 1000ms).
+  - Zufälliges Feld generieren ("Zufall").
+  - Feld leeren ("Leeren").
+  - Vorgefertigte Muster laden (z.B. Glider, LWSS, Pulsar).
+- **Statistiken:** Anzeige der aktuellen Generation und Anzahl lebender Zellen.
+- **Intro Screen:** Erklärt die Regeln und die Faszination der Emergenz.
 
-## The Rules
+## Steuerung & Interaktion
 
-1.  **Birth:** A dead cell with exactly 3 live neighbors becomes a live cell.
-2.  **Survival:** A live cell with 2 or 3 live neighbors stays alive.
-3.  **Death:** A live cell with fewer than 2 or more than 3 live neighbors dies.
+### Desktop (Maus)
+- **Linksklick:** Zelle umschalten (Zeichnen).
+- **Rechtsklick + Ziehen:** Den sichtbaren Ausschnitt verschieben.
+- **Mausrad:** Den sichtbaren Ausschnitt verschieben (horizontal/vertikal).
 
-## Getting Started
+### Mobile (Touch)
+- **Tippen:** Zelle umschalten.
+- **Pfeiltasten-Overlay:** Den sichtbaren Ausschnitt verschieben.
 
-### Prerequisites
+## Die Regeln
 
-- Node.js (v18 or higher recommended)
+1.  **Geburt:** Eine tote Zelle mit genau 3 lebenden Nachbarn wird lebendig.
+2.  **Überleben:** Eine lebende Zelle mit 2 oder 3 lebenden Nachbarn bleibt am Leben.
+3.  **Tod:** Eine lebende Zelle mit weniger als 2 oder mehr als 3 lebenden Nachbarn stirbt.
+
+## Installation & Start
+
+### Voraussetzungen
+
+- Node.js (v18 oder höher empfohlen)
 - npm
 
-### Installation
+### Schritte
 
-1.  Clone the repository:
+1.  Repository klonen:
     ```bash
     git clone <repository-url>
     cd game-of-life
     ```
 
-2.  Install dependencies:
+2.  Abhängigkeiten installieren:
     ```bash
     npm install
     ```
 
-3.  Start the development server:
+3.  Entwicklungsserver starten:
     ```bash
     npm run dev
     ```
-    Open [http://localhost:5173](http://localhost:5173) in your browser.
+    Öffne [http://localhost:5173](http://localhost:5173) in deinem Browser.
 
-## Building for Production
+## Build für Produktion
 
-To create a production-ready build:
+Um eine optimierte Version für das Deployment zu erstellen:
 
 ```bash
 npm run build
 ```
 
-The output will be in the `dist` directory.
+Das Ergebnis liegt im `dist` Verzeichnis und kann auf jedem statischen Hoster (Vercel, Netlify, GitHub Pages) deployt werden.
 
-## Deployment
+## Video Referenz
 
-This project is built with Vite and can be easily deployed to static hosting providers.
+Dieses Projekt basiert auf den Anforderungen aus folgendem Video:
+[YouTube Link](https://youtu.be/TCLvGLA3WPM?si=-We4-WzZADlUSGRT)
 
-### Vercel (Recommended)
-1.  Import the project from GitHub.
-2.  Framework Preset: **Vite**.
-3.  Deploy.
+## Technologien
 
-### Netlify
-1.  Import from Git.
-2.  Build command: `npm run build`.
-3.  Publish directory: `dist`.
-
-### GitHub Pages
-1.  Update `vite.config.ts` with `base: '/repo-name/'`.
-2.  Run build and push `dist` folder to `gh-pages` branch (or use a workflow).
-
-## Video Reference
-
-This project was built based on the requirements from:
-[Video Link](https://youtu.be/TCLvGLA3WPM?si=-We4-WzZADlUSGRT)
-
-## Technologies Used
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS v4
+- **React 19**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS v4**
