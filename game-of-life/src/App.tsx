@@ -40,6 +40,8 @@ function App() {
     speed,
     setSpeed,
     shift,
+    rule,
+    setRule,
   } = useGameOfLife();
 
   // Mobile Movement Loop - X Axis
@@ -92,7 +94,7 @@ function App() {
 
         {/* 1. Canvas Layer (Background of the Window) */}
         <div className="absolute inset-0 z-0">
-          <CanvasGrid grid={grid} setCell={setCell} shift={shift} />
+          <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
         </div>
 
         {/* Mobile Controls Overlay */}
@@ -138,6 +140,8 @@ function App() {
                 loadPattern={loadPattern}
                 speed={speed}
                 setSpeed={setSpeed}
+                rule={rule}
+                setRule={setRule}
               />
           </div>
 
