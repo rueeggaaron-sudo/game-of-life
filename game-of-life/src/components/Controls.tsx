@@ -9,9 +9,6 @@ interface ControlsProps {
   loadPattern: (pattern: Pattern) => void;
   speed: number;
   setSpeed: (speed: number) => void;
-  rows: number;
-  cols: number;
-  setGridSize: (rows: number, cols: number) => void;
 }
 
 export const Controls = ({
@@ -23,15 +20,12 @@ export const Controls = ({
   loadPattern,
   speed,
   setSpeed,
-  rows,
-  cols,
-  setGridSize,
 }: ControlsProps) => {
   return (
-    <div className="flex flex-wrap gap-4 p-3 md:p-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 items-center justify-center shadow-2xl rounded-t-2xl md:rounded-2xl md:mb-8 mx-auto max-w-fit">
+    <div className="flex flex-wrap gap-2 md:gap-4 p-2 md:p-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 items-center justify-center shadow-2xl rounded-2xl mx-auto max-w-fit">
 
       {/* Group 1: Playback */}
-      <div className="flex gap-2">
+      <div className="flex gap-1 md:gap-2">
         <button
           onClick={toggleRunning}
           className={`px-4 py-2 md:px-5 md:py-2.5 rounded-lg font-bold transition-all transform active:scale-95 flex items-center gap-2 ${
@@ -102,25 +96,6 @@ export const Controls = ({
             onChange={(e) => setSpeed(Number(e.target.value))}
             className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
           />
-        </div>
-
-        {/* Grid Size Control */}
-        <div className="flex flex-col items-start">
-          <label className="text-[10px] text-gray-400 mb-1 ml-1">Größe</label>
-          <select
-            value={`${rows}x${cols}`}
-            onChange={(e) => {
-              const [r, c] = e.target.value.split('x').map(Number);
-              setGridSize(r, c);
-            }}
-            className="bg-gray-800 text-gray-200 border border-gray-700 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 min-w-[80px] md:min-w-[100px] cursor-pointer hover:border-gray-600 transition-colors"
-          >
-            <option value="20x20">Klein</option>
-            <option value="50x50">Mittel</option>
-            <option value="100x100">Groß</option>
-            <option value="200x200">Riesig</option>
-            <option value="500x500">Gigantisch</option>
-          </select>
         </div>
 
         {/* Presets Dropdown */}

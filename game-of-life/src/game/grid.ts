@@ -73,3 +73,30 @@ export function toggleCell(grid: Grid, x: number, y: number): Grid {
 export function clearGrid(grid: Grid): Grid {
   return createEmptyGrid(grid.length, grid[0].length);
 }
+
+/**
+ * Shifts the grid content by (dx, dy).
+ * New cells entering the view are dead (false).
+ * @param grid Current grid
+ * @param dx Horizontal shift amount (positive = right)
+ * @param dy Vertical shift amount (positive = down)
+ * @returns New shifted grid
+ */
+export function shiftGrid(grid: Grid, dx: number, dy: number): Grid {
+  const rows = grid.length;
+  if (rows === 0) return grid;
+  const cols = grid[0].length;
+  const newGrid = createEmptyGrid(rows, cols);
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const srcY = y - dy;
+      const srcX = x - dx;
+
+      if (srcY >= 0 && srcY < rows && srcX >= 0 && srcX < cols) {
+        newGrid[y][x] = grid[srcY][srcX];
+      }
+    }
+  }
+  return newGrid;
+}

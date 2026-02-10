@@ -1,25 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { Grid } from '../game/types';
-import { createEmptyGrid, createRandomGrid, placePattern } from '../game/grid';
+import { createEmptyGrid, createRandomGrid, placePattern, shiftGrid } from '../game/grid';
 import { computeNextGeneration } from '../game/rules';
 import type { Pattern } from '../game/patterns';
 
 export const useGameOfLife = () => {
-  const [rows, setRows] = useState(50);
-  const [cols, setCols] = useState(50); // Default medium size
+  const [rows] = useState(50);
+  const [cols] = useState(50); // Default medium size
   const [grid, setGrid] = useState<Grid>(() => createEmptyGrid(50, 50));
   const [generation, setGeneration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(100); // ms
-
-  // Reset grid when size changes
-  const setGridSize = useCallback((newRows: number, newCols: number) => {
-    setRows(newRows);
-    setCols(newCols);
-    setGrid(createEmptyGrid(newRows, newCols));
-    setGeneration(0);
-    setIsRunning(false);
-  }, []);
 
   const reset = useCallback(() => {
     setGrid(createEmptyGrid(rows, cols));
@@ -47,14 +38,6 @@ export const useGameOfLife = () => {
     setIsRunning(false);
   }, [rows, cols]);
 
-  const toggleCell = useCallback((x: number, y: number) => {
-    setGrid((prevGrid) => {
-      const newGrid = prevGrid.map((row) => [...row]);
-      newGrid[y][x] = !newGrid[y][x];
-      return newGrid;
-    });
-  }, []);
-
   const setCell = useCallback((x: number, y: number, value: boolean) => {
     setGrid((prevGrid) => {
       if (prevGrid[y][x] === value) return prevGrid;
@@ -67,6 +50,10 @@ export const useGameOfLife = () => {
   const step = useCallback(() => {
     setGrid((prevGrid) => computeNextGeneration(prevGrid));
     setGeneration((gen) => gen + 1);
+  }, []);
+
+  const shift = useCallback((dx: number, dy: number) => {
+    setGrid((prevGrid) => shiftGrid(prevGrid, dx, dy));
   }, []);
 
   // Game loop
@@ -85,7 +72,6 @@ export const useGameOfLife = () => {
     generation,
     isRunning,
     setIsRunning,
-    toggleCell,
     setCell,
     step,
     reset,
@@ -93,8 +79,6 @@ export const useGameOfLife = () => {
     loadPattern,
     speed,
     setSpeed,
-    rows,
-    cols,
-    setGridSize,
+    shift,
   };
 };

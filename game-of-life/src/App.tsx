@@ -1,12 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useGameOfLife } from './hooks/useGameOfLife';
 import { CanvasGrid } from './components/CanvasGrid';
 import { Controls } from './components/Controls';
 import { Stats } from './components/Stats';
 import { IntroScreen } from './components/IntroScreen';
+import { MobileControls } from './components/MobileControls';
 
 function App() {
   const [showIntro, setShowIntro] = useState(true);
+  const [velocity, setVelocity] = useState({ x: 0, y: 0 });
+
   const {
     grid,
     generation,
@@ -19,10 +22,17 @@ function App() {
     loadPattern,
     speed,
     setSpeed,
-    rows,
-    cols,
-    setGridSize,
+    shift,
   } = useGameOfLife();
+
+  // Mobile Movement Loop
+  useEffect(() => {
+    if (velocity.x === 0 && velocity.y === 0) return;
+    const interval = setInterval(() => {
+      shift(velocity.x, velocity.y);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [velocity, shift]);
 
   const aliveCount = useMemo(() => {
     let count = 0;
@@ -35,52 +45,66 @@ function App() {
   }, [grid]);
 
   return (
-    <div className="relative w-screen h-screen bg-gray-950 text-white overflow-hidden font-sans selection:bg-blue-500/30">
+    // Outer "Void" Container
+    <div className="relative w-screen h-screen bg-black text-white overflow-hidden font-sans selection:bg-blue-500/30 flex items-center justify-center p-1 md:p-8">
+
+      {/* Intro Screen Overlay (Full Viewport) */}
       {showIntro && <IntroScreen onStart={() => setShowIntro(false)} />}
 
-      {/* Background Grid - Full Screen */}
-      <div className="absolute inset-0 z-0">
-        <CanvasGrid grid={grid} setCell={setCell} />
-      </div>
+      {/* "Immersive Window" Game Container */}
+      <div className="relative w-full h-full bg-gray-950 rounded-xl md:rounded-3xl border border-gray-800/60 shadow-[0_0_60px_-15px_rgba(59,130,246,0.15)] overflow-hidden flex flex-col">
 
-      {/* Floating Header */}
-      <header className="absolute top-0 left-0 right-0 z-20 pointer-events-none px-6 py-4 flex justify-between items-start bg-gradient-to-b from-gray-900/90 to-transparent pb-12">
-        <div className="pointer-events-auto">
-          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent tracking-tight drop-shadow-sm">
-            Conway's Game of Life
-          </h1>
+        {/* 1. Canvas Layer (Background of the Window) */}
+        <div className="absolute inset-0 z-0">
+          <CanvasGrid grid={grid} setCell={setCell} shift={shift} />
         </div>
-        <button
-          onClick={() => setShowIntro(true)}
-          className="pointer-events-auto text-xs md:text-sm text-gray-400 hover:text-white transition-colors border border-gray-700 hover:border-gray-500 rounded-lg px-3 py-1.5 bg-gray-900/80 backdrop-blur shadow-lg"
-        >
-          Über / Regeln
-        </button>
-      </header>
 
-      {/* Floating Stats - Centered Top (below header title on mobile, centered on desktop) */}
-      <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none w-full flex justify-center px-4">
-        <div className="pointer-events-auto bg-gray-900/70 backdrop-blur rounded-full px-4 py-1 border border-gray-800 shadow-xl">
-          <Stats generation={generation} aliveCount={aliveCount} />
-        </div>
-      </div>
+        {/* Mobile Controls Overlay */}
+        <MobileControls velocity={velocity} setVelocity={setVelocity} />
 
-      {/* Floating Controls - Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="pointer-events-auto">
-          <Controls
-            isRunning={isRunning}
-            toggleRunning={() => setIsRunning(!isRunning)}
-            step={step}
-            reset={reset}
-            randomize={randomize}
-            loadPattern={loadPattern}
-            speed={speed}
-            setSpeed={setSpeed}
-            rows={rows}
-            cols={cols}
-            setGridSize={setGridSize}
-          />
+        {/* 2. UI Overlay Layer */}
+        <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6">
+
+          {/* Top Section: Header & Stats */}
+          <div className="flex flex-col items-center w-full gap-4">
+
+            {/* Header Row */}
+            <header className="relative w-full flex justify-center items-start pointer-events-auto">
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent drop-shadow-sm text-center tracking-tight">
+                Conway's Game of Life
+              </h1>
+
+              {/* About Button (Absolute Top-Right of Container) */}
+              <button
+                onClick={() => setShowIntro(true)}
+                className="absolute right-0 top-0 text-xs md:text-sm text-gray-400 hover:text-white transition-all border border-gray-800 hover:border-gray-600 bg-gray-900/50 hover:bg-gray-800/80 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm"
+                title="Über / Regeln"
+              >
+                <span className="hidden md:inline">Über / Regeln</span>
+                <span className="md:hidden">?</span>
+              </button>
+            </header>
+
+            {/* Stats Badge */}
+            <div className="pointer-events-auto bg-gray-900/60 backdrop-blur-md border border-gray-800/50 rounded-full px-6 py-2 shadow-xl hover:bg-gray-900/80 transition-colors">
+              <Stats generation={generation} aliveCount={aliveCount} />
+            </div>
+          </div>
+
+          {/* Bottom Section: Controls */}
+          <div className="w-full flex justify-center pointer-events-auto pb-2 md:pb-4">
+             <Controls
+                isRunning={isRunning}
+                toggleRunning={() => setIsRunning(!isRunning)}
+                step={step}
+                reset={reset}
+                randomize={randomize}
+                loadPattern={loadPattern}
+                speed={speed}
+                setSpeed={setSpeed}
+              />
+          </div>
+
         </div>
       </div>
     </div>

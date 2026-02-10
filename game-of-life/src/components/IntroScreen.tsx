@@ -54,7 +54,8 @@ export const IntroScreen = ({ onStart }: IntroScreenProps) => {
           <p className="text-sm text-gray-400 mb-4">
             1. Klicke auf Zellen, um sie lebendig/tot zu schalten.<br/>
             2. Nutze die Steuerung, um die Simulation zu starten, zu pausieren oder schrittweise durchzugehen.<br/>
-            3. Experimentiere mit zufälligen Mustern ("Zufall") oder versuche eigene Formen zu bauen.
+            3. Experimentiere mit zufälligen Mustern ("Zufall") oder versuche eigene Formen zu bauen.<br/>
+            4. Navigiere durch die unendliche Welt mit Rechtsklick + Ziehen oder den Pfeiltasten (Mobile/Desktop).
           </p>
           <a
             href="https://youtu.be/TCLvGLA3WPM?si=-We4-WzZADlUSGRT"
