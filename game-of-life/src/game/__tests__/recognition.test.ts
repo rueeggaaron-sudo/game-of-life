@@ -11,10 +11,11 @@ describe('recognition', () => {
 
     const detected = detectPatterns(withBlock);
     // Any cell in the block should identify as 'Block'
-    const key = `1,1`;
-    expect(detected.has(key)).toBe(true);
-    expect(detected.get(key)?.name).toBe('Block');
-    expect(detected.get(key)?.type).toBe('Still Life');
+    // Index: y * cols + x. 1 * 10 + 1 = 11
+    const idx = 1 * 10 + 1;
+    expect(detected[idx]).toBeDefined();
+    expect(detected[idx]?.name).toBe('Block');
+    expect(detected[idx]?.type).toBe('Still Life');
   });
 
   it('should detect a Blinker (Oscillator)', () => {
@@ -24,9 +25,10 @@ describe('recognition', () => {
     const withBlinker = placePattern(grid, blinker, 2, 2);
 
     const detected = detectPatterns(withBlinker);
-    const key = `2,2`; // First cell
-    expect(detected.has(key)).toBe(true);
-    expect(detected.get(key)?.name).toBe('Blinker');
+    // Index: 2 * 10 + 2 = 22
+    const idx = 2 * 10 + 2;
+    expect(detected[idx]).toBeDefined();
+    expect(detected[idx]?.name).toBe('Blinker');
   });
 
   it('should detect a Glider (Spaceship)', () => {
@@ -40,9 +42,10 @@ describe('recognition', () => {
     const withGlider = placePattern(grid, glider, 1, 1);
 
     const detected = detectPatterns(withGlider);
-    // Check one of the live cells
-    const key = `3,3`; // (1+2, 1+2) -> 3,3 is bottom right of glider
-    expect(detected.has(key)).toBe(true);
-    expect(detected.get(key)?.name).toBe('Glider');
+    // Check one of the live cells. 3,3 is bottom right.
+    // Index: 3 * 10 + 3 = 33
+    const idx = 3 * 10 + 3;
+    expect(detected[idx]).toBeDefined();
+    expect(detected[idx]?.name).toBe('Glider');
   });
 });

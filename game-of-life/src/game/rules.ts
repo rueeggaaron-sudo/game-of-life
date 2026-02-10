@@ -1,4 +1,8 @@
-import type { Grid, Cell } from './types';
+import type { Grid, Cell, Rule } from './types';
+
+export const CONWAY_RULE: Rule = { name: "Conway", birth: [3], survival: [2, 3] };
+export const HIGHLIFE_RULE: Rule = { name: "HighLife", birth: [3, 6], survival: [2, 3] };
+export const SEEDS_RULE: Rule = { name: "Seeds", birth: [2], survival: [] };
 
 /**
  * Calculates the number of alive neighbors for a given cell at (x, y).
@@ -32,45 +36,31 @@ export function countNeighbors(grid: Grid, x: number, y: number): number {
 }
 
 /**
- * Determines the next state of a cell based on Conway's Game of Life rules:
- * 1. Birth: A dead cell with exactly 3 live neighbors becomes a live cell.
- * 2. Survival: A live cell with 2 or 3 live neighbors stays alive.
- * 3. Death: A live cell with fewer than 2 or more than 3 live neighbors dies.
- *
- * @param isAlive Current state of the cell
- * @param neighbors Number of alive neighbors
- * @returns The new state of the cell (true = alive, false = dead)
+ * Determines the next state of a cell based on the provided Rule.
  */
-export function getNextCellState(isAlive: Cell, neighbors: number): Cell {
+export function getNextCellState(isAlive: Cell, neighbors: number, rule: Rule = CONWAY_RULE): Cell {
   if (isAlive) {
-    // Rule: Survival (2 or 3 neighbors)
-    // Rule: Death (< 2 or > 3 neighbors)
-    return neighbors === 2 || neighbors === 3;
+    return rule.survival.includes(neighbors);
   } else {
-    // Rule: Birth (exactly 3 neighbors)
-    return neighbors === 3;
+    return rule.birth.includes(neighbors);
   }
 }
 
 /**
  * Computes the next generation of the entire grid.
- * @param currentGrid The current state of the grid
- * @returns A new grid representing the next generation
  */
-export function computeNextGeneration(currentGrid: Grid): Grid {
+export function computeNextGeneration(currentGrid: Grid, rule: Rule = CONWAY_RULE): Grid {
   const rows = currentGrid.length;
   if (rows === 0) return [];
   const cols = currentGrid[0].length;
 
-  // Create a new grid to store the next state
-  // We cannot modify the current grid in-place because the updates must happen simultaneously
   const nextGrid: Grid = Array(rows).fill(null).map(() => Array(cols).fill(false));
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const neighbors = countNeighbors(currentGrid, x, y);
       const isAlive = currentGrid[y][x];
-      nextGrid[y][x] = getNextCellState(isAlive, neighbors);
+      nextGrid[y][x] = getNextCellState(isAlive, neighbors, rule);
     }
   }
 

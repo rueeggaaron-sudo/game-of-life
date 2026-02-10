@@ -9,3 +9,10 @@ export interface Coords {
   x: number;
   y: number;
 }
+
+// Rule interface for cellular automata
+export interface Rule {
+  name: string;
+  birth: number[];
+  survival: number[];
+}
