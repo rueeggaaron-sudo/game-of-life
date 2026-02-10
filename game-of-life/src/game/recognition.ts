@@ -8,6 +8,7 @@ interface PatternDefinition {
   type: 'Still Life' | 'Oscillator' | 'Spaceship';
   signatures: Set<PatternSignature>;
   color: string; // TailWind color class part, e.g., 'blue-500'
+  hex: string;
 }
 
 // Helper to normalize and sign a set of cells
@@ -51,12 +52,25 @@ function generateVariations(coords: [number, number][]): Set<PatternSignature> {
 
 const PATTERNS: PatternDefinition[] = [];
 
+// Helper to get Hex color from Tailwind class
+function getHexFromTailwind(className: string): string {
+  if (className.includes('bg-red-500')) return '#ef4444';
+  if (className.includes('bg-amber-400')) return '#fbbf24';
+  if (className.includes('bg-yellow-600')) return '#ca8a04';
+  if (className.includes('bg-blue-500')) return '#3b82f6';
+  if (className.includes('bg-purple-500')) return '#a855f7';
+  if (className.includes('bg-green-600')) return '#16a34a';
+  if (className.includes('bg-gray-400')) return '#9ca3af';
+  return '#22c55e'; // Default Green-500
+}
+
 function registerPattern(name: string, type: 'Still Life' | 'Oscillator' | 'Spaceship', coords: [number, number][], color: string) {
   PATTERNS.push({
     name,
     type,
     signatures: generateVariations(coords),
-    color
+    color,
+    hex: getHexFromTailwind(color)
   });
 }
 
@@ -86,29 +100,32 @@ export type DetectedPattern = {
   type: string;
   cells: Coordinate[]; // Absolute coordinates
   color: string;
+  hex: string;
 };
 
 // 8-way connectivity neighbors
 const neighbors = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
 
-export function detectPatterns(grid: Grid): Map<string, DetectedPattern> {
+export function detectPatterns(grid: Grid): (DetectedPattern | undefined)[] {
   const rows = grid.length;
-  if (rows === 0) return new Map();
+  if (rows === 0) return [];
   const cols = grid[0].length;
+  const count = rows * cols;
 
-  const visited = new Set<string>();
-  const cellPatternMap = new Map<string, DetectedPattern>();
+  // Use a 1D TypedArray for visited tracking (Fastest initialization and access)
+  const visited = new Uint8Array(count);
 
-  // Helper to get ID
-  const id = (x: number, y: number) => `${x},${y}`;
+  // Use a 1D array for the result
+  const result: (DetectedPattern | undefined)[] = new Array(count);
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (grid[y][x] && !visited.has(id(x, y))) {
+      const idx = y * cols + x;
+      if (grid[y][x] && visited[idx] === 0) {
         // Start BFS for connected component
         const component: Coordinate[] = [];
         const queue: Coordinate[] = [{ x, y }];
-        visited.add(id(x, y));
+        visited[idx] = 1;
         component.push({ x, y });
 
         let head = 0;
@@ -120,9 +137,9 @@ export function detectPatterns(grid: Grid): Map<string, DetectedPattern> {
             const ny = curr.y + dy;
 
             if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && grid[ny][nx]) {
-              const nid = id(nx, ny);
-              if (!visited.has(nid)) {
-                visited.add(nid);
+              const nIdx = ny * cols + nx;
+              if (visited[nIdx] === 0) {
+                visited[nIdx] = 1;
                 queue.push({ x: nx, y: ny });
                 component.push({ x: nx, y: ny });
               }
@@ -146,16 +163,17 @@ export function detectPatterns(grid: Grid): Map<string, DetectedPattern> {
             name: match.name,
             type: match.type,
             cells: component,
-            color: match.color
+            color: match.color,
+            hex: match.hex
           };
-          // Map each cell to this pattern
+          // Map each cell to this pattern in the result grid
           for (const cell of component) {
-            cellPatternMap.set(id(cell.x, cell.y), detected);
+            result[cell.y * cols + cell.x] = detected;
           }
         }
       }
     }
   }
 
-  return cellPatternMap;
+  return result;
 }
