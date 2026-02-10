@@ -1,5 +1,12 @@
 {
   "devDependencies": {
     "@playwright/test": "^1.58.2"
+  },
+  "scripts": {
+    "postinstall": "cd game-of-life && npm install",
+    "dev": "cd game-of-life && npm run dev",
+    "build": "cd game-of-life && npm run build",
+    "lint": "cd game-of-life && npm run lint",
+    "test:e2e": "playwright test"
   }
 }
