@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import type { Grid } from '../game/types';
+import type { Grid, Rule } from '../game/types';
 import { detectPatterns } from '../game/recognition';
 
 interface CanvasGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
   shift: (dx: number, dy: number) => void;
+  rule: Rule;
 }
 
 const getColorFromClass = (className?: string) => {
@@ -20,7 +21,7 @@ const getColorFromClass = (className?: string) => {
   return '#22c55e';
 };
 
-export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
+export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -53,10 +54,12 @@ export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
 
   // Pattern detection
   // Optimization: Disable pattern detection for large grids to maintain performance
+  // Also only run if rule is Conway's
   const patternMap = useMemo(() => {
+    if (rule.name !== 'Conway') return new Map();
     if (rows * cols > 50000) return new Map();
     return detectPatterns(grid);
-  }, [grid, rows, cols]);
+  }, [grid, rows, cols, rule.name]);
 
   // Resize Observer
   useEffect(() => {

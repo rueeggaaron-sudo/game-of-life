@@ -1,4 +1,6 @@
 import { patterns, type Pattern } from '../game/patterns';
+import type { Rule } from '../game/types';
+import { CONWAY_RULE, HIGHLIFE_RULE, SEEDS_RULE } from '../game/rules';
 
 interface ControlsProps {
   isRunning: boolean;
@@ -9,7 +11,11 @@ interface ControlsProps {
   loadPattern: (pattern: Pattern) => void;
   speed: number;
   setSpeed: (speed: number) => void;
+  rule: Rule;
+  setRule: (rule: Rule) => void;
 }
+
+const RULES = [CONWAY_RULE, HIGHLIFE_RULE, SEEDS_RULE];
 
 export const Controls = ({
   isRunning,
@@ -20,6 +26,8 @@ export const Controls = ({
   loadPattern,
   speed,
   setSpeed,
+  rule,
+  setRule,
 }: ControlsProps) => {
   return (
     <div className="flex flex-wrap gap-2 md:gap-4 p-2 md:p-4 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 items-center justify-center shadow-2xl rounded-2xl mx-auto max-w-fit">
@@ -96,6 +104,23 @@ export const Controls = ({
             onChange={(e) => setSpeed(Number(e.target.value))}
             className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
           />
+        </div>
+
+        {/* Rule Selector */}
+        <div className="flex flex-col items-start">
+            <label className="text-[10px] text-gray-400 mb-1 ml-1">Regel</label>
+            <select
+                value={rule.name}
+                onChange={(e) => {
+                    const selectedRule = RULES.find(r => r.name === e.target.value);
+                    if (selectedRule) setRule(selectedRule);
+                }}
+                className="bg-gray-800 text-gray-200 border border-gray-700 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5 min-w-[80px] md:min-w-[100px] cursor-pointer hover:border-gray-600 transition-colors"
+            >
+                {RULES.map(r => (
+                    <option key={r.name} value={r.name}>{r.name}</option>
+                ))}
+            </select>
         </div>
 
         {/* Presets Dropdown */}

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Grid } from '../game/types';
+import type { Grid, Rule } from '../game/types';
 import { createEmptyGrid, createRandomGrid, placePattern, shiftGrid } from '../game/grid';
-import { computeNextGeneration } from '../game/rules';
+import { computeNextGeneration, CONWAY_RULE } from '../game/rules';
 import type { Pattern } from '../game/patterns';
 
 export const useGameOfLife = () => {
@@ -11,6 +11,7 @@ export const useGameOfLife = () => {
   const [generation, setGeneration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(100); // ms
+  const [rule, setRule] = useState<Rule>(CONWAY_RULE);
 
   const reset = useCallback(() => {
     setGrid(createEmptyGrid(rows, cols));
@@ -48,9 +49,9 @@ export const useGameOfLife = () => {
   }, []);
 
   const step = useCallback(() => {
-    setGrid((prevGrid) => computeNextGeneration(prevGrid));
+    setGrid((prevGrid) => computeNextGeneration(prevGrid, rule));
     setGeneration((gen) => gen + 1);
-  }, []);
+  }, [rule]);
 
   const shift = useCallback((dx: number, dy: number) => {
     setGrid((prevGrid) => shiftGrid(prevGrid, dx, dy));
@@ -80,5 +81,7 @@ export const useGameOfLife = () => {
     speed,
     setSpeed,
     shift,
+    rule,
+    setRule,
   };
 };
