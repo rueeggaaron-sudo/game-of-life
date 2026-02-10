@@ -5,6 +5,7 @@ import { detectPatterns } from '../game/recognition';
 interface CanvasGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
+  shift: (dx: number, dy: number) => void;
 }
 
 const getColorFromClass = (className?: string) => {
@@ -19,18 +20,31 @@ const getColorFromClass = (className?: string) => {
   return '#22c55e';
 };
 
-export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
+export const CanvasGrid = ({ grid, setCell, shift }: CanvasGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Viewport State
-  const [offset, setOffset] = useState({ x: 20, y: 20 }); // Initial padding
-  const [zoom, setZoom] = useState(20); // Pixels per cell
+  // Fixed zoom for the infinite grid illusion
+  const ZOOM = 25;
+  // Center the grid in the container
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const offset = useMemo(() => {
+     if (size.width === 0 || size.height === 0) return { x: 0, y: 0 };
+     // Center the grid based on its pixel size
+     const gridWidth = (grid[0]?.length || 0) * ZOOM;
+     const gridHeight = grid.length * ZOOM;
+     return {
+         x: Math.max(0, (size.width - gridWidth) / 2),
+         y: Math.max(0, (size.height - gridHeight) / 2)
+     };
+  }, [size, grid]);
+
 
   // Interaction State
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const dragAcc = useRef({ x: 0, y: 0 });
   const isDrawingRef = useRef(false);
   const drawModeRef = useRef(true);
 
@@ -85,26 +99,22 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
     ctx.fillStyle = '#0f172a'; // gray-950
     ctx.fillRect(0, 0, size.width, size.height);
 
-    const showGrid = zoom > 5;
+    const showGrid = true;
 
-    // Viewport Calculations
-    const startCol = Math.floor(-offset.x / zoom);
-    const endCol = Math.floor((-offset.x + size.width) / zoom) + 1;
-    const startRow = Math.floor(-offset.y / zoom);
-    const endRow = Math.floor((-offset.y + size.height) / zoom) + 1;
-
-    const visStartCol = Math.max(0, startCol);
-    const visEndCol = Math.min(cols, endCol);
-    const visStartRow = Math.max(0, startRow);
-    const visEndRow = Math.min(rows, endRow);
+    // Viewport Calculations - Simplified since we just center the fixed grid
+    // For infinite grid illusion, we render the whole grid (since it represents the view)
+    const visStartCol = 0;
+    const visEndCol = cols;
+    const visStartRow = 0;
+    const visEndRow = rows;
 
     ctx.save();
     ctx.translate(offset.x, offset.y);
-    ctx.scale(zoom, zoom);
+    ctx.scale(ZOOM, ZOOM);
 
     // Grid Lines
     if (showGrid) {
-      ctx.lineWidth = 1 / zoom; // Keeps line width constant ~1px relative to screen
+      ctx.lineWidth = 1 / ZOOM;
       ctx.strokeStyle = '#334155'; // gray-700
 
       ctx.beginPath();
@@ -125,34 +135,35 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
         if (grid[y][x]) {
           const pattern = patternMap.get(`${x},${y}`);
           ctx.fillStyle = getColorFromClass(pattern?.color);
-          // Overlap grid lines slightly to look clean
           ctx.fillRect(x, y, 1, 1);
         }
       }
     }
 
-    // World Border
+    // World Border (Visible Viewport Border)
     ctx.strokeStyle = '#475569';
-    ctx.lineWidth = 2 / zoom;
+    ctx.lineWidth = 2 / ZOOM;
     ctx.strokeRect(0, 0, cols, rows);
 
     ctx.restore();
 
-  }, [grid, offset, zoom, size, rows, cols, patternMap]);
+  }, [grid, offset, size, rows, cols, patternMap]);
 
   // Interaction Handlers
   const screenToWorld = useCallback((sx: number, sy: number) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = (sx - rect.left - offset.x) / zoom;
-    const y = (sy - rect.top - offset.y) / zoom;
+    const x = (sx - rect.left - offset.x) / ZOOM;
+    const y = (sy - rect.top - offset.y) / ZOOM;
     return { x: Math.floor(x), y: Math.floor(y) };
-  }, [offset, zoom]);
+  }, [offset]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 2 || e.buttons === 2) {
       setIsDragging(true);
       setLastMousePos({ x: e.clientX, y: e.clientY });
+      // Reset accumulator on new drag
+      dragAcc.current = { x: 0, y: 0 };
       return;
     }
     if (e.button === 0) {
@@ -170,7 +181,21 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
     if (isDragging) {
       const dx = e.clientX - lastMousePos.x;
       const dy = e.clientY - lastMousePos.y;
-      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+
+      dragAcc.current.x += dx;
+      dragAcc.current.y += dy;
+
+      const cellsX = Math.floor(dragAcc.current.x / ZOOM);
+      const cellsY = Math.floor(dragAcc.current.y / ZOOM);
+
+      if (cellsX !== 0 || cellsY !== 0) {
+        // Invert cellsX/Y because moving mouse RIGHT means "pulling" the grid, so content moves RIGHT.
+        // shift(1, 0) moves content right.
+        shift(cellsX, cellsY);
+        dragAcc.current.x -= cellsX * ZOOM;
+        dragAcc.current.y -= cellsY * ZOOM;
+      }
+
       setLastMousePos({ x: e.clientX, y: e.clientY });
       return;
     }
@@ -190,30 +215,22 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
   };
 
   const handleDoubleClick = () => {
-    setZoom(20);
-    setOffset({ x: 20, y: 20 });
+    // No-op for now, or maybe reset grid?
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    if (!containerRef.current) return;
-    const zoomSensitivity = 0.001;
-    const delta = -e.deltaY;
-    const zoomFactor = Math.exp(delta * zoomSensitivity);
+    // Translate wheel to shift
+    const deltaY = e.deltaY;
+    const deltaX = e.deltaX;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const worldX = (mouseX - offset.x) / zoom;
-    const worldY = (mouseY - offset.y) / zoom;
-
-    const newZoom = Math.max(1, Math.min(200, zoom * zoomFactor));
-
-    const newOffsetX = mouseX - worldX * newZoom;
-    const newOffsetY = mouseY - worldY * newZoom;
-
-    setZoom(newZoom);
-    setOffset({ x: newOffsetX, y: newOffsetY });
+    // Threshold for wheel steps
+    if (Math.abs(deltaY) > 10 || Math.abs(deltaX) > 10) {
+       const shiftY = deltaY > 0 ? -1 : (deltaY < 0 ? 1 : 0);
+       const shiftX = deltaX > 0 ? -1 : (deltaX < 0 ? 1 : 0);
+       if (shiftX !== 0 || shiftY !== 0) {
+          shift(shiftX, shiftY);
+       }
+    }
   };
 
   return (
@@ -234,13 +251,12 @@ export const CanvasGrid = ({ grid, setCell }: CanvasGridProps) => {
       />
 
       {/* HUD */}
-      <div className="absolute top-20 right-4 pointer-events-none bg-black/50 backdrop-blur text-xs text-gray-400 p-2 rounded border border-gray-800 z-10">
-        <div>Rechtsklick + Ziehen: Verschieben</div>
-        <div>Mausrad: Zoomen</div>
+      <div className="absolute bottom-4 right-4 pointer-events-none bg-black/50 backdrop-blur text-[10px] md:text-xs text-gray-400 p-2 rounded border border-gray-800 z-10 hidden md:block">
+        <div>Rechtsklick + Ziehen: Welt verschieben</div>
+        <div>Mausrad/Trackpad: Welt verschieben</div>
         <div>Linksklick: Zeichnen</div>
-        <div>Doppelklick: Reset Ansicht</div>
         <div className="mt-1 pt-1 border-t border-gray-700 font-mono">
-          Zoom: {zoom.toFixed(1)}px | Pos: {Math.round(-offset.x/zoom)},{Math.round(-offset.y/zoom)}
+          Sichtbarer Bereich: {cols}x{rows}
         </div>
       </div>
     </div>

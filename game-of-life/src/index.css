@@ -11,7 +11,7 @@
 
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f172a; /* gray-950 */
+  background-color: #000000; /* changed from #0f172a to black for the "void" */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,5 +25,5 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: #0f172a;
+  background-color: #000000; /* black void */
 }
