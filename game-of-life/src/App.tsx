@@ -6,6 +6,23 @@ import { Stats } from './components/Stats';
 import { IntroScreen } from './components/IntroScreen';
 import { MobileControls } from './components/MobileControls';
 
+
+// Helper to determine interval based on speed level (1, 2, 3)
+// We want to be ~75% slower than before.
+// Original: 100ms for 1, 2, 3 cells.
+// New: Move 1 cell every X ms.
+// Level 1: 1 cell / 400ms (was 1 cell / 100ms -> 25% speed)
+// Level 2: 1 cell / 200ms (was 2 cells / 100ms -> 25% speed)
+// Level 3: 1 cell / 130ms (was 3 cells / 100ms -> ~25% speed)
+const getSpeedInterval = (level: number) => {
+  switch (level) {
+    case 1: return 400;
+    case 2: return 200;
+    case 3: return 130;
+    default: return 400;
+  }
+};
+
 function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [velocity, setVelocity] = useState({ x: 0, y: 0 });
@@ -25,14 +42,33 @@ function App() {
     shift,
   } = useGameOfLife();
 
-  // Mobile Movement Loop
+  // Mobile Movement Loop - X Axis
   useEffect(() => {
-    if (velocity.x === 0 && velocity.y === 0) return;
+    if (velocity.x === 0) return;
+    const speedLevel = Math.abs(velocity.x);
+    // Move 1 cell at a time, but vary frequency
+    const intervalMs = getSpeedInterval(speedLevel);
+
     const interval = setInterval(() => {
-      shift(velocity.x, velocity.y);
-    }, 100);
+      shift(Math.sign(velocity.x), 0);
+    }, intervalMs);
+
     return () => clearInterval(interval);
-  }, [velocity, shift]);
+  }, [velocity.x, shift]);
+
+  // Mobile Movement Loop - Y Axis
+  useEffect(() => {
+    if (velocity.y === 0) return;
+    const speedLevel = Math.abs(velocity.y);
+    // Move 1 cell at a time, but vary frequency
+    const intervalMs = getSpeedInterval(speedLevel);
+
+    const interval = setInterval(() => {
+      shift(0, Math.sign(velocity.y));
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [velocity.y, shift]);
 
   const aliveCount = useMemo(() => {
     let count = 0;
