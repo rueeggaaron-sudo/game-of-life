@@ -14,21 +14,18 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Viewport State
-  // Fixed zoom for the infinite grid illusion
   const ZOOM = 25;
-  // Center the grid in the container
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const offset = useMemo(() => {
-     if (size.width === 0 || size.height === 0) return { x: 0, y: 0 };
-     // Center the grid based on its pixel size
-     const gridWidth = (grid[0]?.length || 0) * ZOOM;
-     const gridHeight = grid.length * ZOOM;
-     return {
-         x: Math.max(0, (size.width - gridWidth) / 2),
-         y: Math.max(0, (size.height - gridHeight) / 2)
-     };
-  }, [size, grid]);
 
+  const offset = useMemo(() => {
+    if (size.width === 0 || size.height === 0) return { x: 0, y: 0 };
+    const gridWidth = (grid[0]?.length || 0) * ZOOM;
+    const gridHeight = grid.length * ZOOM;
+    return {
+      x: Math.max(0, (size.width - gridWidth) / 2),
+      y: Math.max(0, (size.height - gridHeight) / 2)
+    };
+  }, [size, grid]);
 
   // Interaction State
   const lastMousePos = useRef({ x: 0, y: 0 });
@@ -36,7 +33,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   const isDrawingRef = useRef(false);
   const drawModeRef = useRef(true);
 
-  // Stale State Ref: Keep track of grid for event listeners
+  // Stale State Ref: Verhindert veraltete Closures in Event-Listenern
   const gridRef = useRef(grid);
   useEffect(() => {
     gridRef.current = grid;
@@ -51,9 +48,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   const rows = grid.length;
   const cols = rows > 0 ? grid[0].length : 0;
 
-  // Pattern detection
-  // Optimization: Disable pattern detection for large grids to maintain performance
-  // Also only run if rule is Conway's
+  // Pattern detection logic
   const patternGrid = useMemo(() => {
     if (rule.name !== 'Conway') return [];
     if (rows * cols > 50000) return [];
@@ -63,19 +58,17 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   // Resize Observer
   useEffect(() => {
     if (!containerRef.current) return;
-
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         setSize({ width, height });
       }
     });
-
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, []);
 
-  // Update Canvas Size
+  // Update Canvas Size & Scale
   useEffect(() => {
     if (canvasRef.current && size.width > 0 && size.height > 0) {
       const dpr = window.devicePixelRatio || 1;
@@ -97,43 +90,30 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    // Clear
     ctx.fillStyle = '#0f172a'; // gray-950
     ctx.fillRect(0, 0, size.width, size.height);
-
-    const showGrid = true;
-
-    // Viewport Calculations - Simplified since we just center the fixed grid
-    // For infinite grid illusion, we render the whole grid (since it represents the view)
-    const visStartCol = 0;
-    const visEndCol = cols;
-    const visStartRow = 0;
-    const visEndRow = rows;
 
     ctx.save();
     ctx.translate(offset.x, offset.y);
     ctx.scale(ZOOM, ZOOM);
 
     // Grid Lines
-    if (showGrid) {
-      ctx.lineWidth = 1 / ZOOM;
-      ctx.strokeStyle = '#334155'; // gray-700
-
-      ctx.beginPath();
-      for (let x = visStartCol; x <= visEndCol; x++) {
-        ctx.moveTo(x, visStartRow);
-        ctx.lineTo(x, visEndRow);
-      }
-      for (let y = visStartRow; y <= visEndRow; y++) {
-        ctx.moveTo(visStartCol, y);
-        ctx.lineTo(visEndCol, y);
-      }
-      ctx.stroke();
+    ctx.lineWidth = 1 / ZOOM;
+    ctx.strokeStyle = '#334155'; // gray-700
+    ctx.beginPath();
+    for (let x = 0; x <= cols; x++) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, rows);
     }
+    for (let y = 0; y <= rows; y++) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(cols, y);
+    }
+    ctx.stroke();
 
     // Cells
-    for (let y = visStartRow; y < visEndRow; y++) {
-      for (let x = visStartCol; x < visEndCol; x++) {
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
         if (grid[y][x]) {
           const pattern = patternGrid[y * cols + x];
           ctx.fillStyle = pattern?.hex || '#22c55e';
@@ -142,13 +122,12 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
       }
     }
 
-    // World Border (Visible Viewport Border)
+    // Border
     ctx.strokeStyle = '#475569';
     ctx.lineWidth = 2 / ZOOM;
     ctx.strokeRect(0, 0, cols, rows);
 
     ctx.restore();
-
   }, [grid, offset, size, rows, cols, patternGrid]);
 
   // Interaction Handlers
@@ -192,7 +171,6 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
           dragAcc.current.x -= cellsX * ZOOM;
           dragAcc.current.y -= cellsY * ZOOM;
         }
-
         lastMousePos.current = { x: ev.clientX, y: ev.clientY };
       };
 
@@ -251,17 +229,14 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Translate wheel to shift
     const deltaY = e.deltaY;
     const deltaX = e.deltaX;
-
-    // Threshold for wheel steps
     if (Math.abs(deltaY) > 10 || Math.abs(deltaX) > 10) {
-       const shiftY = deltaY > 0 ? -1 : (deltaY < 0 ? 1 : 0);
-       const shiftX = deltaX > 0 ? -1 : (deltaX < 0 ? 1 : 0);
-       if (shiftX !== 0 || shiftY !== 0) {
-          shift(shiftX, shiftY);
-       }
+      const shiftY = deltaY > 0 ? -1 : (deltaY < 0 ? 1 : 0);
+      const shiftX = deltaX > 0 ? -1 : (deltaX < 0 ? 1 : 0);
+      if (shiftX !== 0 || shiftY !== 0) {
+        shift(shiftX, shiftY);
+      }
     }
   };
 
@@ -279,7 +254,6 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
         className="block touch-none"
       />
 
-      {/* HUD */}
       <div className="absolute bottom-4 right-4 pointer-events-none bg-black/50 backdrop-blur text-[10px] md:text-xs text-gray-400 p-2 rounded border border-gray-800 z-10 hidden md:block">
         <div>Rechtsklick + Ziehen: Welt verschieben</div>
         <div>Mausrad/Trackpad: Welt verschieben</div>
