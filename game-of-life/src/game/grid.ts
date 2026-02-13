@@ -82,7 +82,7 @@ export function clearGrid(grid: Grid): Grid {
  * @param dy Vertical shift amount (positive = down)
  * @returns New shifted grid
  */
-export function shiftGrid(grid: Grid, dx: number, dy: number, density: number = 0.2): Grid {
+export function shiftGrid(grid: Grid, dx: number, dy: number, density: number = 0.0): Grid {
   const rows = grid.length;
   if (rows === 0) return grid;
   const cols = grid[0].length;

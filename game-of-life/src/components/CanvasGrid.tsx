@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type { Grid, Rule } from '../game/types';
 import { detectPatterns } from '../game/recognition';
 
@@ -31,11 +31,22 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
 
 
   // Interaction State
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const lastMousePos = useRef({ x: 0, y: 0 });
   const dragAcc = useRef({ x: 0, y: 0 });
   const isDrawingRef = useRef(false);
   const drawModeRef = useRef(true);
+
+  // Stale State Ref: Keep track of grid for event listeners
+  const gridRef = useRef(grid);
+  useEffect(() => {
+    gridRef.current = grid;
+  }, [grid]);
+
+  // Keep track of offset for event listeners
+  const offsetRef = useRef(offset);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
 
   const rows = grid.length;
   const cols = rows > 0 ? grid[0].length : 0;
@@ -141,68 +152,98 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   }, [grid, offset, size, rows, cols, patternGrid]);
 
   // Interaction Handlers
-  const screenToWorld = useCallback((sx: number, sy: number) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (sx - rect.left - offset.x) / ZOOM;
-    const y = (sy - rect.top - offset.y) / ZOOM;
+  // Helper to convert screen coordinates to grid coordinates
+  // Uses rect passed from pointer down to avoid layout thrashing during drag
+  // Uses offsetRef to always get the latest offset
+  const getGridCoordinates = (clientX: number, clientY: number, rect: DOMRect) => {
+    const currentOffset = offsetRef.current;
+    const x = (clientX - rect.left - currentOffset.x) / ZOOM;
+    const y = (clientY - rect.top - currentOffset.y) / ZOOM;
     return { x: Math.floor(x), y: Math.floor(y) };
-  }, [offset]);
+  };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Prevent default touch actions like scrolling
+    e.preventDefault();
+
+    // Cache the bounding rect once at the start of interaction
+    // This prevents layout thrashing (calling getBoundingClientRect on every move)
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+
+    // Right Click or Multi-touch (usually): Drag
+    // e.button === 2 is right click
     if (e.button === 2 || e.buttons === 2) {
-      setIsDragging(true);
-      setLastMousePos({ x: e.clientX, y: e.clientY });
-      // Reset accumulator on new drag
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
       dragAcc.current = { x: 0, y: 0 };
+
+      const onDragMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - lastMousePos.current.x;
+        const dy = ev.clientY - lastMousePos.current.y;
+
+        dragAcc.current.x += dx;
+        dragAcc.current.y += dy;
+
+        const cellsX = Math.floor(dragAcc.current.x / ZOOM);
+        const cellsY = Math.floor(dragAcc.current.y / ZOOM);
+
+        if (cellsX !== 0 || cellsY !== 0) {
+          shift(cellsX, cellsY);
+          dragAcc.current.x -= cellsX * ZOOM;
+          dragAcc.current.y -= cellsY * ZOOM;
+        }
+
+        lastMousePos.current = { x: ev.clientX, y: ev.clientY };
+      };
+
+      const onDragUp = () => {
+        window.removeEventListener('pointermove', onDragMove);
+        window.removeEventListener('pointerup', onDragUp);
+        window.removeEventListener('pointercancel', onDragUp);
+      };
+
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragUp);
+      window.addEventListener('pointercancel', onDragUp);
       return;
     }
+
+    // Left Click / Touch: Draw
     if (e.button === 0) {
       isDrawingRef.current = true;
-      const { x, y } = screenToWorld(e.clientX, e.clientY);
+      const { x, y } = getGridCoordinates(e.clientX, e.clientY, rect);
+
+      // Use ref for current grid state
+      const currentGrid = gridRef.current;
+
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        const currentVal = grid[y][x];
+        const currentVal = currentGrid[y][x];
         drawModeRef.current = !currentVal;
         setCell(x, y, !currentVal);
       }
-    }
-  };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      const dx = e.clientX - lastMousePos.x;
-      const dy = e.clientY - lastMousePos.y;
-
-      dragAcc.current.x += dx;
-      dragAcc.current.y += dy;
-
-      const cellsX = Math.floor(dragAcc.current.x / ZOOM);
-      const cellsY = Math.floor(dragAcc.current.y / ZOOM);
-
-      if (cellsX !== 0 || cellsY !== 0) {
-        // Invert cellsX/Y because moving mouse RIGHT means "pulling" the grid, so content moves RIGHT.
-        // shift(1, 0) moves content right.
-        shift(cellsX, cellsY);
-        dragAcc.current.x -= cellsX * ZOOM;
-        dragAcc.current.y -= cellsY * ZOOM;
-      }
-
-      setLastMousePos({ x: e.clientX, y: e.clientY });
-      return;
-    }
-    if (isDrawingRef.current) {
-      const { x, y } = screenToWorld(e.clientX, e.clientY);
-      if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        if (grid[y][x] !== drawModeRef.current) {
-           setCell(x, y, drawModeRef.current);
+      const onDrawMove = (ev: PointerEvent) => {
+        const { x, y } = getGridCoordinates(ev.clientX, ev.clientY, rect);
+        const activeGrid = gridRef.current; // Always fresh
+        if (x >= 0 && x < cols && y >= 0 && y < rows) {
+          // Check against the fresh grid state, but enforce drawModeRef
+          if (activeGrid[y][x] !== drawModeRef.current) {
+            setCell(x, y, drawModeRef.current);
+          }
         }
-      }
-    }
-  };
+      };
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    isDrawingRef.current = false;
+      const onDrawUp = () => {
+        isDrawingRef.current = false;
+        window.removeEventListener('pointermove', onDrawMove);
+        window.removeEventListener('pointerup', onDrawUp);
+        window.removeEventListener('pointercancel', onDrawUp);
+      };
+
+      window.addEventListener('pointermove', onDrawMove);
+      window.addEventListener('pointerup', onDrawUp);
+      window.addEventListener('pointercancel', onDrawUp);
+    }
   };
 
   const handleDoubleClick = () => {
@@ -231,10 +272,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
     >
       <canvas
         ref={canvasRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
