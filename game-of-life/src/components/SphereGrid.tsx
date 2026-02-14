@@ -24,41 +24,52 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
 
   const radius = 2.5;
 
-  // Box size calculation to approximate a continuous surface at the equator
-  // Circumference = 2 * PI * radius
-  // Cell width at equator = Circumference / cols
-  const boxSize = cols > 0 ? (2 * Math.PI * radius) / cols : 0.1;
-
-  // Initial Position & Scale Setup
+  // Initial Position & Scale Setup (Memoized calculation to avoid flickering)
   useEffect(() => {
     if (!meshRef.current || rows === 0 || cols === 0) return;
 
     let idx = 0;
+
+    // We want to calculate positions so that cells are roughly square.
+    // The width of a cell depends on the circumference at its latitude (phi).
+    // The height of a cell depends on the arc length of the latitude step.
+
+    const heightPerCell = (Math.PI * radius) / rows; // Arc length per row step
+
     for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        // Map Grid to Sphere
-        // phi: 0 to PI (North to South)
-        // theta: 0 to 2PI (Around)
-
+        // Calculate Latitude (Phi): 0 (North Pole) to PI (South Pole)
         const phi = (y / rows) * Math.PI;
-        const theta = (x / cols) * 2 * Math.PI;
 
-        // Position
-        tempObject.position.setFromSphericalCoords(radius, phi, theta);
+        // Calculate Circumference at this latitude: 2 * PI * r * sin(phi)
+        const circumference = 2 * Math.PI * radius * Math.sin(phi);
 
-        // Rotation: Look away from center
-        tempObject.lookAt(0, 0, 0);
+        // Available width per cell at this latitude
+        const widthPerCell = circumference / cols;
 
-        // Scale
-        // Scale down based on latitude to make them "smaller" at poles
-        // and reduce distortion.
-        const scale = Math.max(0.01, Math.sin(phi));
-        tempObject.scale.set(scale, scale, 1);
+        // Scale to make it a square-ish shape
+        // Apply a small gap factor (0.9) to make individual cells visible
+        const scaleX = Math.max(0.001, widthPerCell * 0.9);
+        const scaleY = Math.max(0.001, heightPerCell * 0.9);
 
-        tempObject.updateMatrix();
-        meshRef.current.setMatrixAt(idx, tempObject.matrix);
-        idx++;
-      }
+        // For rows very close to poles, widthPerCell -> 0.
+        // This naturally makes them "smaller and fewer" (visually smaller).
+
+        for (let x = 0; x < cols; x++) {
+            const theta = (x / cols) * 2 * Math.PI;
+
+            // Position on Sphere Surface
+            tempObject.position.setFromSphericalCoords(radius, phi, theta);
+
+            // Rotation: Look away from center so the "top" of the box faces out
+            tempObject.lookAt(0, 0, 0);
+
+            // Scale
+            tempObject.scale.set(scaleX, scaleY, 0.05); // Thin boxes
+
+            tempObject.updateMatrix();
+            meshRef.current.setMatrixAt(idx, tempObject.matrix);
+            idx++;
+        }
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
   }, [rows, cols, tempObject, radius]);
@@ -71,13 +82,27 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const isAlive = grid[y][x];
+
         if (isAlive) {
-           // Tailwind Green-500: #22c55e
-           tempColor.set('#22c55e');
+           // Vibrant Neon Colors based on position or random to give "figures" look?
+           // The user asked for "figures in other colors like 2D grid".
+           // In 2D grid (CanvasGrid), we often use recognition or simple gradients.
+           // Let's use a gradient based on Y (Latitude) to give some variety,
+           // but keep it bright/neon.
+
+           // Hue based on latitude (0 to 1) -> 0.3 to 0.6 (Green to Blue)
+           const hue = 0.3 + (y / rows) * 0.4;
+           tempColor.setHSL(hue, 1.0, 0.6); // H, S, L - High Saturation, Bright Lightness
+
         } else {
-           // Dark Gray (Slate-900 equivalent)
-           tempColor.set('#0f172a');
+           // Dark "Dead" Cells
+           // Make them very dark gray/blue to contrast with the black background
+           // so the grid structure is faintly visible (user said "rectangles... contrast too weak")
+           tempColor.set('#1e293b'); // Slate-800
+           // Reduce intensity for dead cells by darkening
+           tempColor.multiplyScalar(0.2);
         }
+
         meshRef.current.setColorAt(idx, tempColor);
         idx++;
       }
@@ -99,12 +124,7 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
          // Target: ~1 cell per second at speed level 1
          const radiansPerCell = (2 * Math.PI) / cols;
 
-         // X-Axis Velocity (Left/Right Arrows) -> Y-Axis Rotation
-         // If velocity > 0 (Right Arrow), we want the view to shift such that items move Left.
-         // Rotating the world -Y (Clockwise looking from top) makes front items move Left.
          const rotationSpeedY = -directionX * radiansPerCell * speedLevelX * delta;
-
-         // Y-Axis Velocity (Up/Down Arrows) -> X-Axis Rotation
          const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
 
          groupRef.current.rotation.y += rotationSpeedY;
@@ -114,7 +134,6 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    // Only left click
     if (e.button === 0 && e.instanceId !== undefined) {
         const idx = e.instanceId;
         const y = Math.floor(idx / cols);
@@ -132,8 +151,13 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
             args={[undefined, undefined, count]}
             onPointerDown={handlePointerDown}
         >
-            <boxGeometry args={[boxSize * 0.95, boxSize * 0.95, 0.1]} />
-            <meshStandardMaterial roughness={0.2} metalness={0.5} />
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial
+                roughness={0.2}
+                metalness={0.6}
+                emissive="#ffffff"
+                emissiveIntensity={0.2} // Base emissive for everything
+            />
         </instancedMesh>
     </group>
   );
@@ -142,14 +166,22 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
 export const SphereGrid = ({ grid, setCell, velocity }: SphereGridProps) => {
   return (
     <div className="w-full h-full bg-gray-950 relative">
-        <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
-            <color attach="background" args={['#020617']} />
+        <Canvas camera={{ position: [0, 0, 7.5], fov: 50 }}>
+            {/* Darker background for higher contrast */}
+            <color attach="background" args={['#000000']} />
 
-            <ambientLight intensity={0.4} />
-            <pointLight position={[10, 10, 10]} intensity={1.5} />
-            <pointLight position={[-10, -5, -10]} intensity={0.5} color="#4ade80" />
+            <ambientLight intensity={0.1} />
 
-            <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+            {/* Key Light - Bright White/Blue */}
+            <directionalLight position={[10, 10, 5]} intensity={2.5} color="#e0f2fe" />
+
+            {/* Rim Light - Bright Green/Cyan for edges */}
+            <pointLight position={[-10, 0, -5]} intensity={2} color="#2dd4bf" />
+
+            {/* Fill Light - Purple/Blue from bottom */}
+            <pointLight position={[0, -10, 0]} intensity={1.0} color="#8b5cf6" />
+
+            <Stars radius={100} depth={50} count={5000} factor={4} saturation={1} fade speed={0.5} />
 
             <Sphere grid={grid} setCell={setCell} velocity={velocity} />
 
