@@ -10,7 +10,7 @@ export const SEEDS_RULE: Rule = { name: "Seeds", birth: [2], survival: [] };
  * but the standard Conway implementation usually has hard edges.
  * Given the requirements don't specify wrapping, I will assume hard edges (dead zone outside).
  */
-export function countNeighbors(grid: Grid, x: number, y: number): number {
+export function countNeighbors(grid: Grid, x: number, y: number, wrap: boolean = false): number {
   const rows = grid.length;
   const cols = grid[0].length;
   let count = 0;
@@ -21,13 +21,21 @@ export function countNeighbors(grid: Grid, x: number, y: number): number {
       // Skip the cell itself
       if (i === 0 && j === 0) continue;
 
-      const newRow = y + i;
-      const newCol = x + j;
+      let newRow = y + i;
+      let newCol = x + j;
 
-      // Check boundaries
-      if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+      if (wrap) {
+        newRow = (newRow + rows) % rows;
+        newCol = (newCol + cols) % cols;
         if (grid[newRow][newCol]) {
           count++;
+        }
+      } else {
+        // Check boundaries
+        if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+          if (grid[newRow][newCol]) {
+            count++;
+          }
         }
       }
     }
@@ -49,7 +57,7 @@ export function getNextCellState(isAlive: Cell, neighbors: number, rule: Rule = 
 /**
  * Computes the next generation of the entire grid.
  */
-export function computeNextGeneration(currentGrid: Grid, rule: Rule = CONWAY_RULE): Grid {
+export function computeNextGeneration(currentGrid: Grid, rule: Rule = CONWAY_RULE, wrap: boolean = false): Grid {
   const rows = currentGrid.length;
   if (rows === 0) return [];
   const cols = currentGrid[0].length;
@@ -58,7 +66,7 @@ export function computeNextGeneration(currentGrid: Grid, rule: Rule = CONWAY_RUL
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      const neighbors = countNeighbors(currentGrid, x, y);
+      const neighbors = countNeighbors(currentGrid, x, y, wrap);
       const isAlive = currentGrid[y][x];
       nextGrid[y][x] = getNextCellState(isAlive, neighbors, rule);
     }

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useGameOfLife } from './hooks/useGameOfLife';
 import { CanvasGrid } from './components/CanvasGrid';
+import { SphereGrid } from './components/SphereGrid';
 import { Controls } from './components/Controls';
 import { Stats } from './components/Stats';
 import { IntroScreen } from './components/IntroScreen';
@@ -25,6 +26,7 @@ const getSpeedInterval = (level: number, baseSpeed: number) => {
 function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [velocity, setVelocity] = useState({ x: 0, y: 0 });
+  const [viewMode, setViewMode] = useState<'flat' | 'sphere'>('flat');
 
   const {
     grid,
@@ -41,7 +43,18 @@ function App() {
     shift,
     rule,
     setRule,
+    setIsWrapped,
   } = useGameOfLife();
+
+  const toggleView = () => {
+    if (viewMode === 'flat') {
+      setViewMode('sphere');
+      setIsWrapped(true);
+    } else {
+      setViewMode('flat');
+      setIsWrapped(false);
+    }
+  };
 
   // Mobile Movement Loop - X Axis
   useEffect(() => {
@@ -109,17 +122,29 @@ function App() {
             </div>
         </div>
 
-          <button
-          onClick={() => setShowIntro(true)}
-          className="text-xs md:text-sm text-gray-400 hover:text-white transition-all border border-gray-800 hover:border-gray-600 bg-gray-900 hover:bg-gray-800 rounded-lg px-3 py-1.5 shadow-sm"
-        >
-          Über / Regeln
-        </button>
+          <div className="flex gap-2">
+            <button
+              onClick={toggleView}
+              className="text-xs md:text-sm text-blue-400 hover:text-blue-300 transition-all border border-blue-900/50 hover:border-blue-700 bg-blue-950/30 hover:bg-blue-900/50 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer"
+            >
+              {viewMode === 'flat' ? '3D Sphäre' : '2D Raster'}
+            </button>
+            <button
+              onClick={() => setShowIntro(true)}
+              className="text-xs md:text-sm text-gray-400 hover:text-white transition-all border border-gray-800 hover:border-gray-600 bg-gray-900 hover:bg-gray-800 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer"
+            >
+              Über / Regeln
+            </button>
+          </div>
       </header>
 
       {/* Game Grid Area - Takes remaining space */}
       <div className="relative flex-1 w-full bg-gray-950 rounded-xl border border-gray-800/60 shadow-[0_0_60px_-15px_rgba(59,130,246,0.15)] overflow-hidden min-h-0">
-          <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
+          {viewMode === 'flat' ? (
+            <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
+          ) : (
+            <SphereGrid grid={grid} setCell={setCell} />
+          )}
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
       </div>

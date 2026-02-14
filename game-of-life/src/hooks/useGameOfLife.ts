@@ -12,6 +12,7 @@ export const useGameOfLife = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(100); // ms
   const [rule, setRule] = useState<Rule>(CONWAY_RULE);
+  const [isWrapped, setIsWrapped] = useState(false);
 
   const reset = useCallback(() => {
     setGrid(createEmptyGrid(rows, cols));
@@ -49,13 +50,13 @@ export const useGameOfLife = () => {
   }, []);
 
   const step = useCallback(() => {
-    setGrid((prevGrid) => computeNextGeneration(prevGrid, rule));
+    setGrid((prevGrid) => computeNextGeneration(prevGrid, rule, isWrapped));
     setGeneration((gen) => gen + 1);
-  }, [rule]);
+  }, [rule, isWrapped]);
 
   const shift = useCallback((dx: number, dy: number) => {
-    setGrid((prevGrid) => shiftGrid(prevGrid, dx, dy));
-  }, []);
+    setGrid((prevGrid) => shiftGrid(prevGrid, dx, dy, 0.0, isWrapped));
+  }, [isWrapped]);
 
   // Game loop
   useEffect(() => {
@@ -83,5 +84,7 @@ export const useGameOfLife = () => {
     shift,
     rule,
     setRule,
+    isWrapped,
+    setIsWrapped,
   };
 };
