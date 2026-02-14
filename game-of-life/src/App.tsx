@@ -7,19 +7,18 @@ import { IntroScreen } from './components/IntroScreen';
 import { MobileControls } from './components/MobileControls';
 
 
-// Helper to determine interval based on speed level (1, 2, 3)
-// We want to be ~75% slower than before.
-// Original: 100ms for 1, 2, 3 cells.
-// New: Move 1 cell every X ms.
-// Level 1: 1 cell / 400ms (was 1 cell / 100ms -> 25% speed)
-// Level 2: 1 cell / 200ms (was 2 cells / 100ms -> 25% speed)
-// Level 3: 1 cell / 130ms (was 3 cells / 100ms -> ~25% speed)
-const getSpeedInterval = (level: number) => {
+// Helper to determine interval based on speed level (1, 2, 3) AND simulation speed
+const getSpeedInterval = (level: number, baseSpeed: number) => {
+  // Base requirement:
+  // Level 1: 1 cell per baseSpeed ms (1:1 with simulation)
+  // Level 2: 1.5x faster -> baseSpeed / 1.5
+  // Level 3: 2x faster -> baseSpeed / 2.0
+
   switch (level) {
-    case 1: return 400;
-    case 2: return 200;
-    case 3: return 130;
-    default: return 400;
+    case 1: return baseSpeed;
+    case 2: return baseSpeed / 1.5;
+    case 3: return baseSpeed / 2.0;
+    default: return baseSpeed;
   }
 };
 
@@ -48,29 +47,37 @@ function App() {
   useEffect(() => {
     if (velocity.x === 0) return;
     const speedLevel = Math.abs(velocity.x);
-    // Move 1 cell at a time, but vary frequency
-    const intervalMs = getSpeedInterval(speedLevel);
+    // Dynamically calculate interval based on current simulation speed
+    const intervalMs = getSpeedInterval(speedLevel, speed);
 
     const interval = setInterval(() => {
       shift(Math.sign(velocity.x), 0);
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [velocity.x, shift]);
+  }, [velocity.x, shift, speed]); // Added speed dependency
 
   // Mobile Movement Loop - Y Axis
   useEffect(() => {
     if (velocity.y === 0) return;
     const speedLevel = Math.abs(velocity.y);
-    // Move 1 cell at a time, but vary frequency
-    const intervalMs = getSpeedInterval(speedLevel);
+    const intervalMs = getSpeedInterval(speedLevel, speed);
 
     const interval = setInterval(() => {
       shift(0, Math.sign(velocity.y));
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [velocity.y, shift]);
+  }, [velocity.y, shift, speed]); // Added speed dependency
+
+  // Enhanced Toggle Running to also stop movement
+  const handleToggleRunning = () => {
+    if (isRunning) {
+      // If stopping, also stop movement
+      setVelocity({ x: 0, y: 0 });
+    }
+    setIsRunning(!isRunning);
+  };
 
   const aliveCount = useMemo(() => {
     let count = 0;
@@ -84,13 +91,15 @@ function App() {
 
   return (
     // Outer "Void" Container
-    <div className="relative w-screen h-screen bg-black text-white overflow-hidden font-sans selection:bg-blue-500/30 flex flex-col p-4 md:p-6 gap-4">
+    // Use w-full and h-screen. removed max-w constraint implicitly by not adding it.
+    // px-4 md:px-8 ensures some padding but allows full width usage.
+    <div className="relative w-full h-screen bg-black text-white overflow-hidden font-sans selection:bg-blue-500/30 flex flex-col p-4 md:p-6 gap-4">
 
       {/* Intro Screen Overlay (Full Viewport) */}
       {showIntro && <IntroScreen onStart={() => setShowIntro(false)} />}
 
       {/* Header Section - Fixed Height */}
-      <header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800 shrink-0">
+      <header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800 shrink-0 w-full">
         <div className="flex flex-col md:flex-row items-center gap-4">
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-green-400 bg-clip-text text-transparent drop-shadow-sm tracking-tight text-center md:text-left">
               Conway's Game of Life
@@ -109,17 +118,17 @@ function App() {
       </header>
 
       {/* Game Grid Area - Takes remaining space */}
-      <div className="relative flex-1 bg-gray-950 rounded-xl border border-gray-800/60 shadow-[0_0_60px_-15px_rgba(59,130,246,0.15)] overflow-hidden min-h-0">
+      <div className="relative flex-1 w-full bg-gray-950 rounded-xl border border-gray-800/60 shadow-[0_0_60px_-15px_rgba(59,130,246,0.15)] overflow-hidden min-h-0">
           <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
       </div>
 
       {/* Footer/Controls Section - Fixed Height */}
-      <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-800 flex justify-center shrink-0 overflow-x-auto">
+      <div className="w-full bg-gray-900/50 p-4 rounded-xl border border-gray-800 flex justify-center shrink-0 overflow-x-auto">
             <Controls
               isRunning={isRunning}
-              toggleRunning={() => setIsRunning(!isRunning)}
+              toggleRunning={handleToggleRunning}
               step={step}
               reset={reset}
               randomize={randomize}
