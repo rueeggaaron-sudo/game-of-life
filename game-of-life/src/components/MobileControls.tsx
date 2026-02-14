@@ -60,8 +60,8 @@ export const MobileControls = ({ velocity, setVelocity }: MobileControlsProps) =
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
 
-      {/* Top Center Arrow */}
-      <div className="absolute top-36 md:top-8 left-1/2 -translate-x-1/2">
+      {/* Top Center Arrow - Moved closer to edge */}
+      <div className="absolute top-4 md:top-6 left-1/2 -translate-x-1/2">
         <button
           className={getArrowClass(velocity.y < 0)}
           onClick={() => handleDirection('up')}
@@ -73,8 +73,8 @@ export const MobileControls = ({ velocity, setVelocity }: MobileControlsProps) =
         </button>
       </div>
 
-      {/* Bottom Center Arrow */}
-      <div className="absolute bottom-28 md:bottom-28 left-1/2 -translate-x-1/2">
+      {/* Bottom Center Arrow - Moved closer to edge */}
+      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2">
         <button
           className={getArrowClass(velocity.y > 0)}
           onClick={() => handleDirection('down')}
@@ -86,8 +86,8 @@ export const MobileControls = ({ velocity, setVelocity }: MobileControlsProps) =
         </button>
       </div>
 
-      {/* Left Center Arrow */}
-      <div className="absolute top-1/2 -translate-y-1/2 left-4 md:left-8">
+      {/* Left Center Arrow - Moved closer to edge */}
+      <div className="absolute top-1/2 -translate-y-1/2 left-2 md:left-6">
         <button
           className={getArrowClass(velocity.x < 0)}
           onClick={() => handleDirection('left')}
@@ -99,8 +99,8 @@ export const MobileControls = ({ velocity, setVelocity }: MobileControlsProps) =
         </button>
       </div>
 
-      {/* Right Center Arrow */}
-      <div className="absolute top-1/2 -translate-y-1/2 right-4 md:right-8">
+      {/* Right Center Arrow - Moved closer to edge */}
+      <div className="absolute top-1/2 -translate-y-1/2 right-2 md:right-6">
         <button
           className={getArrowClass(velocity.x > 0)}
           onClick={() => handleDirection('right')}
