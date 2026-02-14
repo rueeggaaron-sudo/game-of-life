@@ -88,7 +88,7 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
   }, [grid, rows, cols, tempColor]);
 
   // Rotation Animation
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
      if (groupRef.current && velocity && cols > 0) {
          const speedLevelX = Math.abs(velocity.x);
          const directionX = Math.sign(velocity.x);
