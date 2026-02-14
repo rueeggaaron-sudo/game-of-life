@@ -64,7 +64,7 @@ function App() {
     const intervalMs = getSpeedInterval(speedLevel, speed);
 
     const interval = setInterval(() => {
-      shift(Math.sign(velocity.x), 0);
+      shift(-Math.sign(velocity.x), 0);
     }, intervalMs);
 
     return () => clearInterval(interval);
@@ -77,7 +77,7 @@ function App() {
     const intervalMs = getSpeedInterval(speedLevel, speed);
 
     const interval = setInterval(() => {
-      shift(0, Math.sign(velocity.y));
+      shift(0, -Math.sign(velocity.y));
     }, intervalMs);
 
     return () => clearInterval(interval);
