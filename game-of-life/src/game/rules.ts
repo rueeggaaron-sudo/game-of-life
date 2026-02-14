@@ -21,14 +21,12 @@ export function countNeighbors(grid: Grid, x: number, y: number): number {
       // Skip the cell itself
       if (i === 0 && j === 0) continue;
 
-      const newRow = y + i;
-      const newCol = x + j;
+      // Wrap around edges (Toroidal Logic)
+      const newRow = (y + i + rows) % rows;
+      const newCol = (x + j + cols) % cols;
 
-      // Check boundaries
-      if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
-        if (grid[newRow][newCol]) {
-          count++;
-        }
+      if (grid[newRow][newCol]) {
+        count++;
       }
     }
   }
