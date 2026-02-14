@@ -58,7 +58,7 @@ function App() {
 
   // Mobile Movement Loop - X Axis
   useEffect(() => {
-    if (velocity.x === 0) return;
+    if (velocity.x === 0 || viewMode === 'sphere') return;
     const speedLevel = Math.abs(velocity.x);
     // Dynamically calculate interval based on current simulation speed
     const intervalMs = getSpeedInterval(speedLevel, speed);
@@ -68,11 +68,11 @@ function App() {
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [velocity.x, shift, speed]); // Added speed dependency
+  }, [velocity.x, shift, speed, viewMode]); // Added speed dependency
 
   // Mobile Movement Loop - Y Axis
   useEffect(() => {
-    if (velocity.y === 0) return;
+    if (velocity.y === 0 || viewMode === 'sphere') return;
     const speedLevel = Math.abs(velocity.y);
     const intervalMs = getSpeedInterval(speedLevel, speed);
 
@@ -81,7 +81,7 @@ function App() {
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [velocity.y, shift, speed]); // Added speed dependency
+  }, [velocity.y, shift, speed, viewMode]); // Added speed dependency
 
   // Enhanced Toggle Running to also stop movement
   const handleToggleRunning = () => {
@@ -143,7 +143,7 @@ function App() {
           {viewMode === 'flat' ? (
             <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
           ) : (
-            <SphereGrid grid={grid} setCell={setCell} />
+            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} />
           )}
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
