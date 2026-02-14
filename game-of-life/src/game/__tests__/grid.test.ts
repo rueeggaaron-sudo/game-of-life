@@ -67,5 +67,15 @@ describe('grid', () => {
       expect(shifted[1][0]).toBe(false);
       expect(shifted[2][0]).toBe(false);
     });
+
+    it('should default to density 0.0 (empty cells) when density is omitted', () => {
+      const grid = createEmptyGrid(3, 3);
+      // Shift right by 1, so column 0 is new.
+      // Call without density arg
+      const shifted = shiftGrid(grid, 1, 0);
+      expect(shifted[0][0]).toBe(false);
+      expect(shifted[1][0]).toBe(false);
+      expect(shifted[2][0]).toBe(false);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type { Grid, Rule } from '../game/types';
 import { detectPatterns } from '../game/recognition';
 
@@ -26,6 +26,12 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
       y: Math.max(0, (size.height - gridHeight) / 2)
     };
   }, [size, grid]);
+
+  // Keep offset in ref to avoid stale closures in event listeners
+  const offsetRef = useRef(offset);
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
 
   // Interaction State
   const lastMousePos = useRef({ x: 0, y: 0 });
@@ -124,15 +130,19 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
     ctx.restore();
   }, [grid, offset, size, rows, cols, patternGrid]);
 
-  const screenToWorld = useCallback((sx: number, sy: number) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = (sx - rect.left - offset.x) / ZOOM;
-    const y = (sy - rect.top - offset.y) / ZOOM;
+  const getGridCoordinates = (clientX: number, clientY: number, rect: DOMRect, currentOffset: { x: number, y: number }) => {
+    const x = (clientX - rect.left - currentOffset.x) / ZOOM;
+    const y = (clientY - rect.top - currentOffset.y) / ZOOM;
     return { x: Math.floor(x), y: Math.floor(y) };
-  }, [offset]);
+  };
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (!canvasRef.current) return;
+
+    // Cache Rect and Offset at start of interaction
+    const rect = canvasRef.current.getBoundingClientRect();
+    const currentOffset = offsetRef.current;
+
     // Rechtsklick (2) oder gehaltene Taste (2): Dragging
     if (e.button === 2 || e.buttons === 2) {
       lastMousePos.current = { x: e.clientX, y: e.clientY };
@@ -171,7 +181,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
     // Linksklick: Zeichnen
     if (e.button === 0) {
       isDrawingRef.current = true;
-      const { x, y } = screenToWorld(e.clientX, e.clientY);
+      const { x, y } = getGridCoordinates(e.clientX, e.clientY, rect, currentOffset);
       const currentGrid = gridRef.current;
 
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
@@ -181,7 +191,7 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
       }
 
       const onDrawMove = (ev: PointerEvent) => {
-        const { x, y } = screenToWorld(ev.clientX, ev.clientY);
+        const { x, y } = getGridCoordinates(ev.clientX, ev.clientY, rect, currentOffset);
         const activeGrid = gridRef.current; 
         if (x >= 0 && x < cols && y >= 0 && y < rows) {
           if (activeGrid[y][x] !== drawModeRef.current) {
