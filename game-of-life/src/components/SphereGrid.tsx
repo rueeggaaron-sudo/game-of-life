@@ -3,15 +3,17 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Grid } from '../game/types';
+import type { Grid, Rule } from '../game/types';
+import { detectPatterns } from '../game/recognition';
 
 interface SphereGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
   velocity?: { x: number; y: number };
+  rule?: Rule;
 }
 
-const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
+const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -28,6 +30,13 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
   // Circumference = 2 * PI * radius
   // Cell width at equator = Circumference / cols
   const boxSize = cols > 0 ? (2 * Math.PI * radius) / cols : 0.1;
+
+  // Pattern detection logic
+  const patternGrid = useMemo(() => {
+    if (!rule || rule.name !== 'Conway') return [];
+    if (rows * cols > 50000) return [];
+    return detectPatterns(grid);
+  }, [grid, rows, cols, rule]);
 
   // Initial Position & Scale Setup
   useEffect(() => {
@@ -72,11 +81,18 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
       for (let x = 0; x < cols; x++) {
         const isAlive = grid[y][x];
         if (isAlive) {
-           // Tailwind Green-500: #22c55e
-           tempColor.set('#22c55e');
+           const pattern = patternGrid[idx]; // idx matches y*cols+x order
+           // Use pattern color or default green
+           tempColor.set(pattern?.hex || '#22c55e');
+           // Make live cells slightly larger/pop out?
+           // We can't easily change scale per instance without refilling matrix, which is expensive.
+           // We'll rely on color.
         } else {
-           // Dark Gray (Slate-900 equivalent)
-           tempColor.set('#0f172a');
+           // Dead Cells:
+           // User wants "bright shine behind".
+           // We set dead cells to a bright color to form the "glowing" body of the sphere.
+           // Contrasts with black space.
+           tempColor.set('#334155'); // Slate-700 - Visible but distinct from live cells.
         }
         meshRef.current.setColorAt(idx, tempColor);
         idx++;
@@ -85,7 +101,7 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
     if (meshRef.current.instanceColor) {
         meshRef.current.instanceColor.needsUpdate = true;
     }
-  }, [grid, rows, cols, tempColor]);
+  }, [grid, rows, cols, tempColor, patternGrid]);
 
   // Rotation Animation
   useFrame((_state, delta) => {
@@ -127,31 +143,41 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
 
   return (
     <group ref={groupRef}>
+        {/* Inner Sphere for Background Glow/Contrast */}
+        {/* This provides the "bright shine" from behind/inside */}
+        <mesh>
+            <sphereGeometry args={[radius * 0.98, 64, 64]} />
+            <meshBasicMaterial color="#bae6fd" />
+        </mesh>
+
         <instancedMesh
             ref={meshRef}
             args={[undefined, undefined, count]}
             onPointerDown={handlePointerDown}
         >
-            <boxGeometry args={[boxSize * 0.95, boxSize * 0.95, 0.1]} />
-            <meshStandardMaterial roughness={0.2} metalness={0.5} />
+            {/* Reduced box size to let more inner glow shine through (0.9 -> 0.85) */}
+            <boxGeometry args={[boxSize * 0.85, boxSize * 0.85, 0.1]} />
+            <meshPhongMaterial shininess={50} specular="#444444" />
         </instancedMesh>
     </group>
   );
 };
 
-export const SphereGrid = ({ grid, setCell, velocity }: SphereGridProps) => {
+export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   return (
     <div className="w-full h-full bg-gray-950 relative">
         <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
             <color attach="background" args={['#020617']} />
 
-            <ambientLight intensity={0.4} />
-            <pointLight position={[10, 10, 10]} intensity={1.5} />
-            <pointLight position={[-10, -5, -10]} intensity={0.5} color="#4ade80" />
+            {/* Lighting Setup for better visibility/glow effect */}
+            <ambientLight intensity={1.5} />
+            <hemisphereLight args={['#ffffff', '#000000', 1.0]} />
+            <pointLight position={[10, 10, 10]} intensity={2.0} />
+            <pointLight position={[-10, -10, -5]} intensity={1.0} color="#38bdf8" />
 
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-            <Sphere grid={grid} setCell={setCell} velocity={velocity} />
+            <Sphere grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
 
             <OrbitControls enablePan={false} minDistance={3.5} maxDistance={12} />
         </Canvas>
