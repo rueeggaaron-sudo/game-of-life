@@ -6,8 +6,8 @@ import type { Pattern } from '../game/patterns';
 
 export const useGameOfLife = () => {
   const [rows] = useState(50);
-  const [cols] = useState(50); // Default medium size
-  const [grid, setGrid] = useState<Grid>(() => createEmptyGrid(50, 50));
+  const [cols] = useState(100); // Default medium size
+  const [grid, setGrid] = useState<Grid>(() => createEmptyGrid(50, 100));
   const [generation, setGeneration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(100); // ms

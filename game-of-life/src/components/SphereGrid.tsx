@@ -3,15 +3,17 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Grid } from '../game/types';
+import type { Grid, Rule } from '../game/types';
+import { detectPatterns } from '../game/recognition';
 
 interface SphereGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
   velocity?: { x: number; y: number };
+  rule?: Rule;
 }
 
-const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
+const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -27,7 +29,16 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
   // Box size calculation to approximate a continuous surface at the equator
   // Circumference = 2 * PI * radius
   // Cell width at equator = Circumference / cols
-  const boxSize = cols > 0 ? (2 * Math.PI * radius) / cols : 0.1;
+  const cellWidth = cols > 0 ? (2 * Math.PI * radius) / cols : 0.1;
+  // Cell height = Latitude arc / rows (Assuming PI coverage for full sphere N to S)
+  const cellHeight = rows > 0 ? (Math.PI * radius) / rows : 0.1;
+
+  // Pattern detection logic
+  const patternGrid = useMemo(() => {
+    if (!rule || rule.name !== 'Conway') return [];
+    if (rows * cols > 50000) return [];
+    return detectPatterns(grid);
+  }, [grid, rows, cols, rule]);
 
   // Initial Position & Scale Setup
   useEffect(() => {
@@ -50,10 +61,11 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
         tempObject.lookAt(0, 0, 0);
 
         // Scale
-        // Scale down based on latitude to make them "smaller" at poles
-        // and reduce distortion.
-        const scale = Math.max(0.01, Math.sin(phi));
-        tempObject.scale.set(scale, scale, 1);
+        // Scale down width based on latitude to fit longitude lines (sin(phi)).
+        // Keep height constant (scale=1) as latitude rings are parallel-ish in this mapping logic.
+        // Clamp min scale to avoid rendering issues at poles.
+        const scaleX = Math.max(0.01, Math.sin(phi));
+        tempObject.scale.set(scaleX, 1, 1);
 
         tempObject.updateMatrix();
         meshRef.current.setMatrixAt(idx, tempObject.matrix);
@@ -72,8 +84,13 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
       for (let x = 0; x < cols; x++) {
         const isAlive = grid[y][x];
         if (isAlive) {
-           // Tailwind Green-500: #22c55e
-           tempColor.set('#22c55e');
+           const pattern = patternGrid[idx];
+           if (pattern && pattern.hex) {
+             tempColor.set(pattern.hex);
+           } else {
+             // Tailwind Green-500: #22c55e
+             tempColor.set('#22c55e');
+           }
         } else {
            // Dark Gray (Slate-900 equivalent)
            tempColor.set('#0f172a');
@@ -85,16 +102,13 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
     if (meshRef.current.instanceColor) {
         meshRef.current.instanceColor.needsUpdate = true;
     }
-  }, [grid, rows, cols, tempColor]);
+  }, [grid, rows, cols, tempColor, patternGrid]);
 
   // Rotation Animation
   useFrame((_state, delta) => {
      if (groupRef.current && velocity && cols > 0) {
          const speedLevelX = Math.abs(velocity.x);
          const directionX = Math.sign(velocity.x);
-
-         const speedLevelY = Math.abs(velocity.y);
-         const directionY = Math.sign(velocity.y);
 
          // Target: ~1 cell per second at speed level 1
          const radiansPerCell = (2 * Math.PI) / cols;
@@ -105,10 +119,12 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
          const rotationSpeedY = -directionX * radiansPerCell * speedLevelX * delta;
 
          // Y-Axis Velocity (Up/Down Arrows) -> X-Axis Rotation
-         const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
+         // NOTE: We do NOT rotate the sphere on the X-axis anymore.
+         // Instead, we shift the grid data (in App.tsx) to keep the "Equator" (squares) in the center view.
+         // const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
 
          groupRef.current.rotation.y += rotationSpeedY;
-         groupRef.current.rotation.x += rotationSpeedX;
+         // groupRef.current.rotation.x += rotationSpeedX;
      }
   });
 
@@ -132,14 +148,14 @@ const Sphere = ({ grid, setCell, velocity }: SphereGridProps) => {
             args={[undefined, undefined, count]}
             onPointerDown={handlePointerDown}
         >
-            <boxGeometry args={[boxSize * 0.95, boxSize * 0.95, 0.1]} />
+            <boxGeometry args={[cellWidth * 0.95, cellHeight * 0.95, 0.1]} />
             <meshStandardMaterial roughness={0.2} metalness={0.5} />
         </instancedMesh>
     </group>
   );
 };
 
-export const SphereGrid = ({ grid, setCell, velocity }: SphereGridProps) => {
+export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   return (
     <div className="w-full h-full bg-gray-950 relative">
         <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
@@ -151,7 +167,7 @@ export const SphereGrid = ({ grid, setCell, velocity }: SphereGridProps) => {
 
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-            <Sphere grid={grid} setCell={setCell} velocity={velocity} />
+            <Sphere grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
 
             <OrbitControls enablePan={false} minDistance={3.5} maxDistance={12} />
         </Canvas>

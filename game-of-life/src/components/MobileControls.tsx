@@ -74,7 +74,7 @@ export const MobileControls = ({ velocity, setVelocity }: MobileControlsProps) =
       </div>
 
       {/* Bottom Center Arrow */}
-      <div className="absolute bottom-28 md:bottom-28 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-1 md:bottom-2 left-1/2 -translate-x-1/2">
         <button
           className={getArrowClass(velocity.y > 0)}
           onClick={() => handleDirection('down')}

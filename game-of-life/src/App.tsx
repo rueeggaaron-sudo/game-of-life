@@ -72,7 +72,7 @@ function App() {
 
   // Mobile Movement Loop - Y Axis
   useEffect(() => {
-    if (velocity.y === 0 || viewMode === 'sphere') return;
+    if (velocity.y === 0) return;
     const speedLevel = Math.abs(velocity.y);
     const intervalMs = getSpeedInterval(speedLevel, speed);
 
@@ -143,7 +143,7 @@ function App() {
           {viewMode === 'flat' ? (
             <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
           ) : (
-            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} />
+            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
           )}
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
