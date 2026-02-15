@@ -143,7 +143,7 @@ function App() {
           {viewMode === 'flat' ? (
             <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
           ) : (
-            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} />
+            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
           )}
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
