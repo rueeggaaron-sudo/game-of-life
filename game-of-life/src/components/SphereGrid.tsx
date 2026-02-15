@@ -34,6 +34,7 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   // Pattern detection logic
   const patternGrid = useMemo(() => {
     if (!rule || rule.name !== 'Conway') return [];
+    // Limit detection to reasonable grid sizes for performance
     if (rows * cols > 50000) return [];
     return detectPatterns(grid);
   }, [grid, rows, cols, rule]);
@@ -84,15 +85,12 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
            const pattern = patternGrid[idx]; // idx matches y*cols+x order
            // Use pattern color or default green
            tempColor.set(pattern?.hex || '#22c55e');
-           // Make live cells slightly larger/pop out?
-           // We can't easily change scale per instance without refilling matrix, which is expensive.
-           // We'll rely on color.
         } else {
            // Dead Cells:
            // User wants "bright shine behind".
-           // We set dead cells to a bright color to form the "glowing" body of the sphere.
-           // Contrasts with black space.
-           tempColor.set('#334155'); // Slate-700 - Visible but distinct from live cells.
+           // We set dead cells to a distinct color (slate-700) to form the "body" of the sphere,
+           // while gaps reveal the inner glowing sphere.
+           tempColor.set('#334155');
         }
         meshRef.current.setColorAt(idx, tempColor);
         idx++;
@@ -144,10 +142,17 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   return (
     <group ref={groupRef}>
         {/* Inner Sphere for Background Glow/Contrast */}
-        {/* This provides the "bright shine" from behind/inside */}
+        {/* increased radius (0.99) and brighter color for stronger backlight effect */}
         <mesh>
-            <sphereGeometry args={[radius * 0.98, 64, 64]} />
-            <meshBasicMaterial color="#bae6fd" />
+            <sphereGeometry args={[radius * 0.99, 64, 64]} />
+            <meshBasicMaterial color="#e0f2fe" side={THREE.BackSide} />
+            {/* Added BackSide so looking *through* it from inside works too, though mainly FrontSide is seen */}
+        </mesh>
+
+        {/* Duplicate inner sphere just in case BackSide isn't enough for gaps? No, standard is fine. */}
+        <mesh>
+            <sphereGeometry args={[radius * 0.99, 64, 64]} />
+            <meshBasicMaterial color="#e0f2fe" />
         </mesh>
 
         <instancedMesh
@@ -155,9 +160,10 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
             args={[undefined, undefined, count]}
             onPointerDown={handlePointerDown}
         >
-            {/* Reduced box size to let more inner glow shine through (0.9 -> 0.85) */}
-            <boxGeometry args={[boxSize * 0.85, boxSize * 0.85, 0.1]} />
-            <meshPhongMaterial shininess={50} specular="#444444" />
+            {/* Reduced box size to 0.8 to let more inner glow shine through gaps */}
+            <boxGeometry args={[boxSize * 0.8, boxSize * 0.8, 0.1]} />
+            {/* StandardMaterial for better lighting response, but relying on strong ambient light for glow */}
+            <meshStandardMaterial roughness={0.4} metalness={0.1} />
         </instancedMesh>
     </group>
   );
@@ -169,11 +175,11 @@ export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) =
         <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
             <color attach="background" args={['#020617']} />
 
-            {/* Lighting Setup for better visibility/glow effect */}
-            <ambientLight intensity={1.5} />
+            {/* Lighting Setup: High intensity to ensure colors pop (no dark sides) */}
+            <ambientLight intensity={3.0} />
             <hemisphereLight args={['#ffffff', '#000000', 1.0]} />
             <pointLight position={[10, 10, 10]} intensity={2.0} />
-            <pointLight position={[-10, -10, -5]} intensity={1.0} color="#38bdf8" />
+            <pointLight position={[-10, -10, -5]} intensity={1.5} color="#38bdf8" />
 
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
