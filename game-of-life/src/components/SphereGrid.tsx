@@ -110,9 +110,6 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
          const speedLevelX = Math.abs(velocity.x);
          const directionX = Math.sign(velocity.x);
 
-         const speedLevelY = Math.abs(velocity.y);
-         const directionY = Math.sign(velocity.y);
-
          // Target: ~1 cell per second at speed level 1
          const radiansPerCell = (2 * Math.PI) / cols;
 
@@ -122,10 +119,12 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
          const rotationSpeedY = -directionX * radiansPerCell * speedLevelX * delta;
 
          // Y-Axis Velocity (Up/Down Arrows) -> X-Axis Rotation
-         const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
+         // NOTE: We do NOT rotate the sphere on the X-axis anymore.
+         // Instead, we shift the grid data (in App.tsx) to keep the "Equator" (squares) in the center view.
+         // const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
 
          groupRef.current.rotation.y += rotationSpeedY;
-         groupRef.current.rotation.x += rotationSpeedX;
+         // groupRef.current.rotation.x += rotationSpeedX;
      }
   });
 

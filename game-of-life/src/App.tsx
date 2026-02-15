@@ -72,7 +72,7 @@ function App() {
 
   // Mobile Movement Loop - Y Axis
   useEffect(() => {
-    if (velocity.y === 0 || viewMode === 'sphere') return;
+    if (velocity.y === 0) return;
     const speedLevel = Math.abs(velocity.y);
     const intervalMs = getSpeedInterval(speedLevel, speed);
 
