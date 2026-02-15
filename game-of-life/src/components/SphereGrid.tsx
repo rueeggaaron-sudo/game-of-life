@@ -14,92 +14,70 @@ interface SphereGridProps {
 }
 
 const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
 
   const rows = grid.length;
   const cols = rows > 0 ? grid[0].length : 0;
-  const count = rows * cols;
 
-  const tempObject = useMemo(() => new THREE.Object3D(), []);
-  const tempColor = useMemo(() => new THREE.Color(), []);
+  // Create Canvas for Texture
+  const { canvas, ctx, texture } = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    // Set resolution to grid size for pixel-perfect mapping (with NearestFilter)
+    // We can upscale if we want smooth borders, but "Squares" implies sharp pixels.
+    // However, to draw grid lines, we might need higher resolution.
+    // User wants "connected raster". 1 pixel per cell = connected.
+    canvas.width = cols || 100;
+    canvas.height = rows || 50;
+    const ctx = canvas.getContext('2d', { alpha: false }); // No transparency needed for base
 
-  const radius = 2.5;
+    const texture = new THREE.CanvasTexture(canvas);
+    // Important for "Squares": Keep pixels sharp
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false; // Not needed for NearestFilter usually
 
-  // Box size calculation to approximate a continuous surface at the equator
-  // Circumference = 2 * PI * radius
-  // Cell width at equator = Circumference / cols
-  const boxSize = cols > 0 ? (2 * Math.PI * radius) / cols : 0.1;
+    return { canvas, ctx, texture };
+  }, [rows, cols]);
 
-  // Pattern detection logic
+  // Pattern Detection
   const patternGrid = useMemo(() => {
     if (!rule || rule.name !== 'Conway') return [];
-    // Limit detection to reasonable grid sizes for performance
     if (rows * cols > 50000) return [];
     return detectPatterns(grid);
   }, [grid, rows, cols, rule]);
 
-  // Initial Position & Scale Setup
+  // Draw to Canvas when Grid updates
   useEffect(() => {
-    if (!meshRef.current || rows === 0 || cols === 0) return;
+    if (!ctx || rows === 0 || cols === 0) return;
 
-    let idx = 0;
+    // Background (Dead Cells) - Dark slate blueish to match previous aesthetic
+    ctx.fillStyle = '#1e293b'; // slate-800
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Live Cells
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
-        // Map Grid to Sphere
-        // phi: 0 to PI (North to South)
-        // theta: 0 to 2PI (Around)
-
-        const phi = (y / rows) * Math.PI;
-        const theta = (x / cols) * 2 * Math.PI;
-
-        // Position
-        tempObject.position.setFromSphericalCoords(radius, phi, theta);
-
-        // Rotation: Look away from center
-        tempObject.lookAt(0, 0, 0);
-
-        // Scale
-        // Scale down based on latitude to make them "smaller" at poles
-        // and reduce distortion.
-        const scale = Math.max(0.01, Math.sin(phi));
-        tempObject.scale.set(scale, scale, 1);
-
-        tempObject.updateMatrix();
-        meshRef.current.setMatrixAt(idx, tempObject.matrix);
-        idx++;
-      }
-    }
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [rows, cols, tempObject, radius]);
-
-  // Update Colors based on Grid State
-  useEffect(() => {
-    if (!meshRef.current || rows === 0 || cols === 0) return;
-
-    let idx = 0;
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const isAlive = grid[y][x];
-        if (isAlive) {
-           const pattern = patternGrid[idx]; // idx matches y*cols+x order
-           // Use pattern color or default green
-           tempColor.set(pattern?.hex || '#22c55e');
+        if (grid[y][x]) {
+            const idx = y * cols + x;
+            const pattern = patternGrid[idx];
+            ctx.fillStyle = pattern?.hex || '#22c55e'; // Green or Pattern Color
+            // Draw 1x1 pixel
+            ctx.fillRect(x, y, 1, 1);
         } else {
-           // Dead Cells:
-           // User wants "bright shine behind".
-           // We set dead cells to a distinct color (slate-700) to form the "body" of the sphere,
-           // while gaps reveal the inner glowing sphere.
-           tempColor.set('#334155');
+            // Optional: Draw grid lines?
+            // Since we fill background, we could draw lines.
+            // But at 1px resolution, lines are impossible without sub-pixel (which means higher res).
+            // User asked for "closed connected raster".
+            // If we just draw pixels, they are connected.
+            // Let's stick to simple pixels first. "Squares" are inherent.
         }
-        meshRef.current.setColorAt(idx, tempColor);
-        idx++;
       }
     }
-    if (meshRef.current.instanceColor) {
-        meshRef.current.instanceColor.needsUpdate = true;
-    }
-  }, [grid, rows, cols, tempColor, patternGrid]);
+
+    texture.needsUpdate = true;
+  }, [grid, rows, cols, ctx, canvas, texture, patternGrid]);
+
 
   // Rotation Animation
   useFrame((_state, delta) => {
@@ -110,15 +88,11 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
          const speedLevelY = Math.abs(velocity.y);
          const directionY = Math.sign(velocity.y);
 
-         // Target: ~1 cell per second at speed level 1
          const radiansPerCell = (2 * Math.PI) / cols;
 
-         // X-Axis Velocity (Left/Right Arrows) -> Y-Axis Rotation
-         // If velocity > 0 (Right Arrow), we want the view to shift such that items move Left.
-         // Rotating the world -Y (Clockwise looking from top) makes front items move Left.
+         // X-Axis Velocity -> Y-Axis Rotation
          const rotationSpeedY = -directionX * radiansPerCell * speedLevelX * delta;
-
-         // Y-Axis Velocity (Up/Down Arrows) -> X-Axis Rotation
+         // Y-Axis Velocity -> X-Axis Rotation
          const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
 
          groupRef.current.rotation.y += rotationSpeedY;
@@ -128,64 +102,104 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    // Only left click
-    if (e.button === 0 && e.instanceId !== undefined) {
-        const idx = e.instanceId;
-        const y = Math.floor(idx / cols);
-        const x = idx % cols;
+    // Calculate Grid Coordinates from UV
+    if (e.uv && cols > 0 && rows > 0) {
+        // UV: (0,0) is usually bottom-left
+        // Canvas: (0,0) is top-left
+        // Texture mapping on Sphere:
+        // u = 0..1 (around equator) -> x
+        // v = 0..1 (south to north) -> y (inverted?)
+
+        // Let's assume standard UV sphere mapping:
+        // u goes 0->1 around.
+        // v goes 0 (bottom) -> 1 (top).
+
+        // Our grid[0] is top row.
+        // So y = (1 - v) * rows.
+
+        // Shift x by 0.25 (90 deg) because sphere textures start at a specific angle?
+        // Usually standard sphere u=0 is at +Z or -Z.
+        // We can just rely on visual clicking.
+
+        const x = Math.floor(e.uv.x * cols) % cols;
+        const y = Math.floor((1 - e.uv.y) * rows) % rows; // Invert Y to match canvas top-down
+
         if (x >= 0 && x < cols && y >= 0 && y < rows) {
             setCell(x, y, !grid[y][x]);
         }
     }
   };
 
+  const radius = 2.8; // Slightly larger sphere
+
   return (
     <group ref={groupRef}>
-        {/* Inner Sphere for Background Glow/Contrast */}
-        {/* increased radius (0.99) and brighter color for stronger backlight effect */}
-        <mesh>
-            <sphereGeometry args={[radius * 0.99, 64, 64]} />
-            <meshBasicMaterial color="#e0f2fe" side={THREE.BackSide} />
-            {/* Added BackSide so looking *through* it from inside works too, though mainly FrontSide is seen */}
-        </mesh>
-
-        {/* Duplicate inner sphere just in case BackSide isn't enough for gaps? No, standard is fine. */}
-        <mesh>
-            <sphereGeometry args={[radius * 0.99, 64, 64]} />
-            <meshBasicMaterial color="#e0f2fe" />
-        </mesh>
-
-        <instancedMesh
+        <mesh
             ref={meshRef}
-            args={[undefined, undefined, count]}
             onPointerDown={handlePointerDown}
+            rotation={[0, -Math.PI / 2, 0]} // Rotate to align texture seam if needed
         >
-            {/* Reduced box size to 0.8 to let more inner glow shine through gaps */}
-            <boxGeometry args={[boxSize * 0.8, boxSize * 0.8, 0.1]} />
-            {/* StandardMaterial for better lighting response, but relying on strong ambient light for glow */}
-            <meshStandardMaterial roughness={0.4} metalness={0.1} />
-        </instancedMesh>
+            <sphereGeometry args={[radius, 64, 64]} />
+            <meshStandardMaterial
+                map={texture}
+                roughness={0.2}
+                metalness={0.1}
+                emissive="#000000"
+            />
+        </mesh>
     </group>
   );
+};
+
+// Simple Glow Texture Component
+const Glow = () => {
+    const texture = useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)'); // Bright center
+            gradient.addColorStop(0.4, 'rgba(186, 230, 253, 0.3)'); // Blueish mid
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Fade out
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+        }
+        return new THREE.CanvasTexture(canvas);
+    }, []);
+
+    return (
+        <mesh position={[0, 0, -4]}>
+            <planeGeometry args={[15, 15]} />
+            <meshBasicMaterial
+                map={texture}
+                transparent
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+            />
+        </mesh>
+    );
 };
 
 export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   return (
     <div className="w-full h-full bg-gray-950 relative">
-        <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
+        <Canvas camera={{ position: [0, 0, 9], fov: 50 }}>
             <color attach="background" args={['#020617']} />
 
-            {/* Lighting Setup: High intensity to ensure colors pop (no dark sides) */}
-            <ambientLight intensity={3.0} />
-            <hemisphereLight args={['#ffffff', '#000000', 1.0]} />
+            <ambientLight intensity={1.5} />
             <pointLight position={[10, 10, 10]} intensity={2.0} />
-            <pointLight position={[-10, -10, -5]} intensity={1.5} color="#38bdf8" />
+            <pointLight position={[-10, -10, -5]} intensity={1.0} color="#38bdf8" />
+
+            {/* The Backlight Glow */}
+            <Glow />
 
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
             <Sphere grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
 
-            <OrbitControls enablePan={false} minDistance={3.5} maxDistance={12} />
+            <OrbitControls enablePan={false} minDistance={4} maxDistance={15} />
         </Canvas>
 
         <div className="absolute bottom-4 right-4 pointer-events-none bg-black/50 backdrop-blur text-[10px] md:text-xs text-gray-400 p-2 rounded border border-gray-800 z-10 hidden md:block">
