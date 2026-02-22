@@ -118,13 +118,7 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
          // Rotating the world -Y (Clockwise looking from top) makes front items move Left.
          const rotationSpeedY = -directionX * radiansPerCell * speedLevelX * delta;
 
-         // Y-Axis Velocity (Up/Down Arrows) -> X-Axis Rotation
-         // NOTE: We do NOT rotate the sphere on the X-axis anymore.
-         // Instead, we shift the grid data (in App.tsx) to keep the "Equator" (squares) in the center view.
-         // const rotationSpeedX = -directionY * radiansPerCell * speedLevelY * delta;
-
          groupRef.current.rotation.y += rotationSpeedY;
-         // groupRef.current.rotation.x += rotationSpeedX;
      }
   });
 
