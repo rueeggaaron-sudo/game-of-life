@@ -141,9 +141,9 @@ function App() {
       {/* Game Grid Area - Takes remaining space */}
       <div className="relative flex-1 w-full bg-gray-950 rounded-xl border border-gray-800/60 shadow-[0_0_60px_-15px_rgba(59,130,246,0.15)] overflow-hidden min-h-0">
           {viewMode === 'flat' ? (
-            <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} />
+            <CanvasGrid grid={grid} setCell={setCell} shift={shift} rule={rule} isRunning={isRunning} />
           ) : (
-            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
+            <SphereGrid grid={grid} setCell={setCell} velocity={velocity} rule={rule} isRunning={isRunning} />
           )}
           {/* Mobile Controls Overlay - Only over the grid */}
           <MobileControls velocity={velocity} setVelocity={setVelocity} />
