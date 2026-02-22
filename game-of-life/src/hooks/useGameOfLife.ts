@@ -4,10 +4,11 @@ import { createEmptyGrid, createRandomGrid, placePattern, shiftGrid } from '../g
 import { computeNextGeneration, CONWAY_RULE } from '../game/rules';
 import type { Pattern } from '../game/patterns';
 
+const GRID_ROWS = 50;
+const GRID_COLS = 100;
+
 export const useGameOfLife = () => {
-  const [rows] = useState(50);
-  const [cols] = useState(100); // Default medium size
-  const [grid, setGrid] = useState<Grid>(() => createEmptyGrid(50, 100));
+  const [grid, setGrid] = useState<Grid>(() => createEmptyGrid(GRID_ROWS, GRID_COLS));
   const [generation, setGeneration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(100); // ms
@@ -15,30 +16,30 @@ export const useGameOfLife = () => {
   const [isWrapped, setIsWrapped] = useState(false);
 
   const reset = useCallback(() => {
-    setGrid(createEmptyGrid(rows, cols));
+    setGrid(createEmptyGrid(GRID_ROWS, GRID_COLS));
     setGeneration(0);
     setIsRunning(false);
-  }, [rows, cols]);
+  }, []);
 
   const randomize = useCallback(() => {
-    setGrid(createRandomGrid(rows, cols));
+    setGrid(createRandomGrid(GRID_ROWS, GRID_COLS));
     setGeneration(0);
-  }, [rows, cols]);
+  }, []);
 
   const loadPattern = useCallback((pattern: Pattern) => {
-    const emptyGrid = createEmptyGrid(rows, cols);
+    const emptyGrid = createEmptyGrid(GRID_ROWS, GRID_COLS);
     const patternHeight = pattern.grid.length;
     const patternWidth = pattern.grid[0].length;
 
     // Center the pattern
-    const offsetY = Math.floor((rows - patternHeight) / 2);
-    const offsetX = Math.floor((cols - patternWidth) / 2);
+    const offsetY = Math.floor((GRID_ROWS - patternHeight) / 2);
+    const offsetX = Math.floor((GRID_COLS - patternWidth) / 2);
 
     const newGrid = placePattern(emptyGrid, pattern.grid, offsetX, offsetY);
     setGrid(newGrid);
     setGeneration(0);
     setIsRunning(false);
-  }, [rows, cols]);
+  }, []);
 
   const setCell = useCallback((x: number, y: number, value: boolean) => {
     setGrid((prevGrid) => {
