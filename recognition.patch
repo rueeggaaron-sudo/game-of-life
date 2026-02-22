@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+// Helper to normalize and sign a set of cells
+function normalize(cells: Coordinate[]): Coordinate[] {
+  if (cells.length === 0) return [];
+  const minX = Math.min(...cells.map(c => c.x));
+  const minY = Math.min(...cells.map(c => c.y));
+  // Sort by y, then x
+  return cells.map(c => ({ x: c.x - minX, y: c.y - minY })).sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+function getSignature(cells: Coordinate[]): PatternSignature {
+  return JSON.stringify(normalize(cells));
+}
+=======
+// Helper to normalize and sign a set of cells
+function getSignature(cells: Coordinate[]): PatternSignature {
+  if (cells.length === 0) return "";
+
+  let minX = cells[0].x;
+  let minY = cells[0].y;
+  for (let i = 1; i < cells.length; i++) {
+    const c = cells[i];
+    if (c.x < minX) minX = c.x;
+    if (c.y < minY) minY = c.y;
+  }
+
+  const len = cells.length;
+  const packed = new Uint32Array(len);
+  for (let i = 0; i < len; i++) {
+    // Pack y in high bits, x in low bits for sorting (y-then-x)
+    packed[i] = ((cells[i].y - minY) << 16) | (cells[i].x - minX);
+  }
+  packed.sort();
+
+  let signature = "";
+  for (let i = 0; i < len; i++) {
+    const p = packed[i];
+    signature += (p & 0xFFFF) + "," + (p >>> 16) + ";";
+  }
+  return signature;
+}
+>>>>>>> REPLACE

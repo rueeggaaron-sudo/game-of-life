@@ -1,0 +1,7 @@
+In game-of-life/src/game/recognition.ts:
+
+- Merged normalize and getSignature into a single optimized function.
+- Used Uint32Array to pack (y, x) coordinates into a single integer for efficient sorting.
+- Replaced JSON.stringify with a custom string builder (e.g., "x,y;x,y;").
+- Avoided multiple array iterations (map, Math.min, etc.) and object allocations.
+- Fixed a minor typo in 'Toad' pattern registration shadow property.
