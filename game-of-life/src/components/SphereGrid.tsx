@@ -1,21 +1,24 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Grid, Rule } from '../game/types';
-import { detectPatterns } from '../game/recognition';
+import { detectPatterns, type DetectedPattern } from '../game/recognition';
 
 interface SphereGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
   velocity?: { x: number; y: number };
   rule?: Rule;
+  isRunning: boolean;
 }
 
-const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
+const Sphere = ({ grid, setCell, velocity, rule, isRunning }: SphereGridProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const groupRef = useRef<THREE.Group>(null);
+
+  const [patternGrid, setPatternGrid] = useState<(DetectedPattern | undefined)[]>([]);
 
   const rows = grid.length;
   const cols = rows > 0 ? grid[0].length : 0;
@@ -34,11 +37,24 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   const cellHeight = rows > 0 ? (Math.PI * radius) / rows : 0.1;
 
   // Pattern detection logic
-  const patternGrid = useMemo(() => {
-    if (!rule || rule.name !== 'Conway') return [];
-    if (rows * cols > 50000) return [];
-    return detectPatterns(grid);
-  }, [grid, rows, cols, rule]);
+
+  useEffect(() => {
+    if (!rule || rule.name !== 'Conway' || rows * cols > 50000) {
+      setPatternGrid([]);
+      return;
+    }
+
+    if (!isRunning) {
+      setPatternGrid(detectPatterns(grid));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setPatternGrid(detectPatterns(grid));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [grid, isRunning, rule, rows, cols]);
 
   // Initial Position & Scale Setup
   useEffect(() => {
@@ -155,7 +171,7 @@ const Sphere = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
   );
 };
 
-export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) => {
+export const SphereGrid = ({ grid, setCell, velocity, rule, isRunning }: SphereGridProps) => {
   return (
     <div className="w-full h-full bg-gray-950 relative">
         <Canvas camera={{ position: [0, 0, 8], fov: 60 }}>
@@ -167,7 +183,7 @@ export const SphereGrid = ({ grid, setCell, velocity, rule }: SphereGridProps) =
 
             <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-            <Sphere grid={grid} setCell={setCell} velocity={velocity} rule={rule} />
+            <Sphere grid={grid} setCell={setCell} velocity={velocity} rule={rule} isRunning={isRunning} />
 
             <OrbitControls enablePan={false} minDistance={3.5} maxDistance={12} />
         </Canvas>

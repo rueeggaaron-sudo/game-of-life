@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import type { Grid, Rule } from '../game/types';
-import { detectPatterns } from '../game/recognition';
+import { detectPatterns, type DetectedPattern } from '../game/recognition';
 
 interface CanvasGridProps {
   grid: Grid;
   setCell: (x: number, y: number, value: boolean) => void;
   shift: (dx: number, dy: number) => void;
   rule: Rule;
+  isRunning: boolean;
 }
 
-export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
+export const CanvasGrid = ({ grid, setCell, shift, rule, isRunning }: CanvasGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [patternGrid, setPatternGrid] = useState<(DetectedPattern | undefined)[]>([]);
 
   // Viewport State
   const ZOOM = 25;
@@ -49,11 +52,24 @@ export const CanvasGrid = ({ grid, setCell, shift, rule }: CanvasGridProps) => {
   const cols = rows > 0 ? grid[0].length : 0;
 
   // Pattern detection logic
-  const patternGrid = useMemo(() => {
-    if (rule.name !== 'Conway') return [];
-    if (rows * cols > 50000) return [];
-    return detectPatterns(grid);
-  }, [grid, rows, cols, rule.name]);
+
+  useEffect(() => {
+    if (rule.name !== 'Conway' || rows * cols > 50000) {
+      setPatternGrid([]);
+      return;
+    }
+
+    if (!isRunning) {
+      setPatternGrid(detectPatterns(grid));
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setPatternGrid(detectPatterns(grid));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [grid, isRunning, rule.name, rows, cols]);
 
   // Resize Observer
   useEffect(() => {
