@@ -44,7 +44,7 @@ Dieses Projekt demonstriert zelluläre Automaten, bei denen komplexe Muster aus 
 
 ### Voraussetzungen
 
-- Node.js (v18 oder höher empfohlen)
+- Node.js 22.12 oder 24 (für die lokale Prüf-Referenz: 22.23.4)
 - npm
 
 ### Schritte
@@ -57,7 +57,7 @@ Dieses Projekt demonstriert zelluläre Automaten, bei denen komplexe Muster aus 
 
 2.  Abhängigkeiten installieren:
     ```bash
-    npm install
+    npm ci --ignore-scripts
     ```
 
 3.  Entwicklungsserver starten:
@@ -75,6 +75,14 @@ npm run build
 ```
 
 Das Ergebnis liegt im `dist` Verzeichnis und kann auf jedem statischen Hoster (Vercel, Netlify, GitHub Pages) deployt werden.
+
+## Lokale Prüfungen
+
+Aus diesem Verzeichnis `npm test -- --run` und `npm run build` ausführen;
+Lint läuft aus dem Repository-Root mit `npm run lint`. Für den vollständigen
+Installationsweg gelten beide Lockfiles und die Befehle im Root-[README](../README.md).
+Die zentrale Prozess- und Git-Übergabe steht in der
+[GIT_HANDOFF.md](https://github.com/rueeggaaron-sudo/orchestrator/blob/main/GIT_HANDOFF.md).
 
 ## Video Referenz
 
